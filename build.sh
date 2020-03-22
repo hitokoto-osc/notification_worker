@@ -15,10 +15,11 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
 GIT_COMMIT="$(git rev-parse HEAD)"
 GIT_DIRTY="$(test -n "$(git status --porcelain)" && echo "+CHANGES" || true)"
-VERSION="$(grep "const Version " version.go | sed -E 's/.*"(.+)"$/\1/' )"
+VERSION=$(grep "const Version " version.go | sed -E 's/.*"(.+)"$/\1/' )
 
 # remove working build
-# rm -rf .gopath
+
+rm -rf .gopath
 if [ ! -d ".gopath" ]; then
 	mkdir -p .gopath/src/source.hitokoto.cn/${OWNER}
 	ln -sf ../../../.. .gopath/src/source.hitokoto.cn/${OWNER}/${PROJECT_NAME}
@@ -33,7 +34,14 @@ go get -d -v ./...
 
 # building the master branch on ci
 if [ "$BUILDBOX_BRANCH" = "master" ]; then
-	go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -tags release -o ./bin/${BIN_NAME}
+	go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -tags release -o ./bin/${BIN_NAME}_"${VERSION}"_linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -tags release -o ./bin/${BIN_NAME}_"${VERSION}"_linux_arm64
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -tags release -o ./bin/${BIN_NAME}_"${VERSION}"_windows_amd64.exe
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -tags release -o ./bin/${BIN_NAME}_"${VERSION}"_darwin_amd64
+
 else
-	go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -o ./bin/${BIN_NAME}
+	go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -o ./bin/${BIN_NAME}_"${VERSION}"_linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -o ./bin/${BIN_NAME}_"${VERSION}"_linux_arm64
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -o ./bin/${BIN_NAME}_"${VERSION}"_windows_amd64.exe
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" -o ./bin/${BIN_NAME}_"${VERSION}"_darwin_amd64
 fi
