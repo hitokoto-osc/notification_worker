@@ -1,0 +1,15 @@
+rabbit:
+  host: 127.0.0.1
+  port: 5672
+  user: admin
+  pass: 123456
+
+aliyun:
+  region_id: cn-hangzhou
+  access_key_id:
+  access_key_secret:
+  dm:
+    name:
+    mail:
+
+debug: true
