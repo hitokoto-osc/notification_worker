@@ -95,4 +95,4 @@ prime/
 # custom
 config.yaml
 bin/
-.gotpath/
+.gopath
