@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"source.hitokoto.cn/hitokoto/notification-worker/src/aliyun/directmail"
@@ -17,6 +19,8 @@ import (
 // 程序信息
 var (
 	DEBUG   = true
+	v bool
+	c string
 )
 
 func initLogger() {
@@ -38,8 +42,15 @@ func initLogger() {
 }
 
 func init() {
+	flag.BoolVar(&v, "v", false, "查看版本信息")
+	flag.StringVar(&c, "c", "", "设定配置文件")
+	flag.Parse()
+	if v {
+		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \nGitCommit: %s", Version, GitCommit)
+		os.Exit(0)
+	}
 	initLogger()
-	config.Init()
+	config.Init(c)
 	// 设置生产日记级别
 	if config.Debug() {
 		log.SetLevel(log.DebugLevel)
