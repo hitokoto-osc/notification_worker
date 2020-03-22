@@ -46,7 +46,7 @@ func init() {
 	flag.StringVar(&c, "c", "", "设定配置文件")
 	flag.Parse()
 	if v {
-		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \nGitCommit: %s", Version, GitCommit)
+		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \nGitCommit: %s \n", Version, GitCommit)
 		os.Exit(0)
 	}
 	initLogger()
