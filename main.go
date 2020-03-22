@@ -16,7 +16,6 @@ import (
 
 // 程序信息
 var (
-	Version = "1.0.0"
 	DEBUG   = true
 )
 
