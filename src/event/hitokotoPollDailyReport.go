@@ -88,6 +88,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 
 type hitokotoPollDailyReportMessage struct {
 	CreatedAt         string                                          `json:"created_at"`         // 报告生成时间
+	To                string                                          `json:"to"`                 // 接收人地址
 	SystemInformation hitokotoPollDailyReportMessageSystemInformation `json:"system_information"` // 系统信息
 	UserInformation   hitokotoPollDailyReportMessageUserInformation   `json:"user_information"`   // 用户信息
 }
