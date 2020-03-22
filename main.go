@@ -51,7 +51,7 @@ func init() {
 }
 
 func main() {
-	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version())
+	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 Git 标签：" + GitCommit)
 	go event.InitRabbitMQEvent()
 	select {} // 堵塞方法
 }
