@@ -62,7 +62,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 <br />
 <p>萌创团队 - 一言项目组<br />
 %s</p>`,
-
+				message.UserName,
 				CreatedAt.In(time.Local).Format("2006-01-02 15:04:05"),
 				strconv.Itoa(message.SystemInformation.Total),
 				strconv.Itoa(message.SystemInformation.ProcessTotal),
@@ -89,6 +89,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 type hitokotoPollDailyReportMessage struct {
 	CreatedAt         string                                          `json:"created_at"`         // 报告生成时间
 	To                string                                          `json:"to"`                 // 接收人地址
+	UserName          string                                          `json:"user_name"`          // 接收人名称
 	SystemInformation hitokotoPollDailyReportMessageSystemInformation `json:"system_information"` // 系统信息
 	UserInformation   hitokotoPollDailyReportMessageUserInformation   `json:"user_information"`   // 用户信息
 }

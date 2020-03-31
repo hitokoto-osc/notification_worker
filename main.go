@@ -18,9 +18,9 @@ import (
 
 // 程序信息
 var (
-	DEBUG   = true
-	v bool
-	c string
+	DEBUG = true
+	v     bool
+	c     string
 )
 
 func initLogger() {
