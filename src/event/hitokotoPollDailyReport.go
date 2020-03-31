@@ -45,7 +45,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
   <li>驳回：%s</li>
   <li>需要修改：%s</li>
 </ul>
-用户统计：
+您的统计：
 <ul>
   <li>参与投票：%s</li>
   <li>等待处理：%s</li>
@@ -57,7 +57,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 您还有 <strong>%s</strong> 个投票需要处理。</p>
 
 <p>感谢您的付出！<br/>
-“生命从无中来，到无中去，每个人都处于“上场——谢幕”这样一个循环中。这个循环不是悲伤，不是无意义，意义就在这过程中；生命之所以有趣，就在于过程中的体验和收获。”<br />
+“生命从无中来，到无中去，每个人都处于‘上场——谢幕’这样一个循环中。这个循环不是悲伤，不是无意义，意义就在这过程中；生命之所以有趣，就在于过程中的体验和收获。”<br />
 以此共勉。</p>
 <br />
 <p>萌创团队 - 一言项目组<br />
