@@ -36,8 +36,8 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 
 			html := fmt.Sprintf(`<h2>您好，%s。</h2>
 <p>今日份的投票报告制作好了！创建时间：%s</p>
-<p>在过去 24 小时中，出现了这些变化：
-平台统计：
+<p>在过去 24 小时中，出现了这些变化：<br />
+平台：
 <ul>
   <li>等待投票：%s</li>
   <li>处理投票：%s</li>
@@ -45,7 +45,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
   <li>驳回：%s</li>
   <li>需要修改：%s</li>
 </ul>
-您的统计：
+您：
 <ul>
   <li>参与投票：%s</li>
   <li>等待处理：%s</li>
@@ -53,7 +53,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
   <li>已驳回：%s</li>
   <li>需要修改：%s</li>
 </ul>
-<p>在参与的投票中，您对 %s 个投票选择了“批准”，您对 %s 个投票选择了“驳回”，您对 %s 个投票选择了“需要修改”。<br />
+<p>在参与的投票中，您对 %s 个投票选择了“批准”，对 %s 个投票选择了“驳回”，对 %s 个投票选择了“需要修改”。<br />
 您还有 <strong>%s</strong> 个投票需要处理。</p>
 
 <p>感谢您的付出！<br/>
@@ -80,7 +80,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 				strconv.Itoa(message.UserInformation.WaitForPolling),
 				time.Now().Format("2006年1月2日"),
 			)
-			err = directmail.SingleSendMail(message.To, "喵！投票结果出炉了！", html, true)
+			err = directmail.SingleSendMail(message.To, "喵！今日份的投票报告来了！", html, true)
 			return err
 		},
 	}
