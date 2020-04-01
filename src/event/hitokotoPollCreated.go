@@ -42,7 +42,7 @@ func (t *hitokotoPollCreatedEvent) Receiver() *rabbitmq.Receiver {
   <li>作者：%s</li>
   <li>提交者： %s</li>
 </ul>
-<p>请您尽快<a href="https://h5.poll.hitokoto.cn/" target="_blank">审核</a>。如果您觉得消息提醒过于频繁，可以在“用户设置”页面关闭“投票创建通知”选项。</p>
+<p>请您尽快<a href="https://h5.poll.hitokoto.cn/poll" target="_blank">审核</a>。如果您觉得消息提醒过于频繁，可以在“用户设置”页面关闭“投票创建通知”选项。</p>
 <br />
 <p>感谢您的支持，<br />
 萌创团队 - 一言项目组<br />
