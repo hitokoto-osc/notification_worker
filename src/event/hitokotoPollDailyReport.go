@@ -35,7 +35,7 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 			}
 
 			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>今日份的投票报告制作好了，请您过目！
+<p>今日份的投票报告制作好了，请您过目！<br />
 统计时间：%s。
 </p>
 
