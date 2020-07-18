@@ -64,7 +64,7 @@ func (c *Consumer) Subscribe() {
 			receiver.HandlerFunc,
 		)
 		if err != nil {
-			log.Printf("处理 Subscribe 时发生错误: %s   %s ", receiver, err)
+			log.Printf("处理 Subscribe 时发生错误: %v   %s ", receiver, err)
 		}
 	}
 }
@@ -76,7 +76,7 @@ func (c *Consumer) SubscribeToQueue() {
 			receiver.ConsumerName,
 			receiver.HandlerFunc)
 		if err != nil {
-			log.Printf("SubscribeToQueue error: %s   %s ", receiver, err)
+			log.Printf("SubscribeToQueue error: %v   %s ", receiver, err)
 		}
 	}
 
