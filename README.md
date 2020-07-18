@@ -10,7 +10,9 @@
 首先克隆本项目到你的工作目录下，然后编辑代码，即可。这里推荐使用 GoLand 编码。
 
 ## 编译
-> TODO: 使用 `Makefile` 替代 `build.sh`
 
-目前只需要执行 `./build.sh` 即可自动编译。（需要 Linux 环境）
+本项目提供两种编译方法：
 
+1. 在项目根目录使用 `make build` 即可自动编译。（支持 linux macos）
+
+2. 只需要执行 ./build.sh 即可自动编译。（需要 Linux 环境）
