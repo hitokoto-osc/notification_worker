@@ -8,6 +8,6 @@ require (
 	github.com/json-iterator/go v1.1.10
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.1
-	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
+	github.com/streadway/amqp v1.0.0
 	gopkg.in/ini.v1 v1.55.0 // indirect
 )
