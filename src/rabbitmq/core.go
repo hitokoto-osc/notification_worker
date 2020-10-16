@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"time"
 )
 
 // 解耦来源：
@@ -98,6 +99,17 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 	if err != nil {
 		panic("Failed to connect to AMQP compatible broker at: " + connectionString)
 	}
+	go func() {
+		for {
+			select {
+			case err := <-m.conn.NotifyClose(make(chan *amqp.Error)):
+				log.Error("[RabbitMQ] AMQP连接丢失，错误信息" + err.Error())
+				log.Info("[RabbitMQ] AMQP 连接将在 3 秒后尝试重连接...")
+				time.Sleep(1000)
+				m.ConnectToBroker(connectionString)
+			}
+		}
+	}()
 }
 
 // Publish publishes a message to the named exchange.
@@ -217,6 +229,8 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 	failOnError(err, "Failed to open a channel")
 	// defer ch.Close()
 
+	notifyClose := ch.NotifyClose(make(chan *amqp.Error))
+
 	err = ch.ExchangeDeclare(
 		exchangeName, // name of the exchange
 		exchangeType, // type
@@ -264,8 +278,38 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 		nil,          // args
 	)
 	failOnError(err, "Failed to register a consumer")
-
 	go consumeLoop(msgs, handlerFunc)
+	go func() {
+		for {
+			select {
+			case e := <-notifyClose:
+				log.Error("[RabbitMQ] Channel 错误，错误信息：" + e.Error())
+
+				close(notifyClose)
+				for i := 0; i < 3; i++ {
+					log.Info("[RabbitMQ] 将在 5 s 后尝试重新注册 Channel")
+					time.Sleep(5 * time.Second)
+					err = m.Subscribe(
+						exchangeName,
+						exchangeType,
+						queueName,
+						consumerName,
+						bindingKey,
+						handlerFunc,
+					)
+					if err == nil { // 重试三次
+						break
+					} else {
+						log.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
+						if i == 2 {
+							log.Panic("[RabbitMQ] 无法恢复 Channel，进程退出。")
+						}
+					}
+				}
+			}
+		}
+	}()
+
 	return nil
 }
 
