@@ -103,7 +103,7 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 	}
 	m.conn = conn
 	go func() {
-        BREAK:
+	KeepAliveLoop:
 		for {
 			select {
 			case err := <-conn.NotifyClose(make(chan *amqp.Error)):
@@ -133,7 +133,7 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 						log.Error("[RabbitMQ] AMQP 重连接失败，错误信息：" + e.Error())
 					} else {
 						log.Info("[RabbitMQ] AMQP 连接已成功重建")
-						break  BREAK
+						break KeepAliveLoop
 					}
 					if i == 4 {
 						log.Fatal("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
@@ -262,8 +262,6 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 	failOnError(err, "Failed to open a channel")
 	// defer ch.Close()
 
-	notifyClose := ch.NotifyClose(make(chan *amqp.Error))
-
 	err = ch.ExchangeDeclare(
 		exchangeName, // name of the exchange
 		exchangeType, // type
@@ -313,16 +311,20 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 	failOnError(err, "Failed to register a consumer")
 	go consumeLoop(msgs, handlerFunc)
 	go func() {
+		KeepAliveLoop:
 		for {
 			select {
-			case <-notifyClose:
-				// TODO: 修复重复尝试机制，目前设置为 30 秒避免直接杀死进程
+			case e := <-ch.NotifyClose(make(chan *amqp.Error)):
+				log.Errorf("[RabbitMQ] Channel：%v:%v:%v:%v \n遇到问题已关闭，错误原因" + e.Error(), queueName,
+					bindingKey,
+					exchangeName,
+					consumerName)
 				for i := 0; i < 5; i++ {
-					log.Infof("[RabbitMQ] 将在 30 s 后尝试重新注册 Channel: %v:%v:%v:%v", queueName,
+					log.Infof("[RabbitMQ] 将在 8 s 后尝试重新注册 Channel: %v:%v:%v:%v", queueName,
 						bindingKey,
 						exchangeName,
 						consumerName)
-					time.Sleep(30 * time.Second)
+					time.Sleep(8 * time.Second)
 					log.Debugf("[RabbitMQ] 开始注册 Channel：%v:%v:%v:%v", queueName,
 						bindingKey,
 						exchangeName,
@@ -352,12 +354,12 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 						)
 						return
 					}()
-					if err == nil { // 重试三次
-						break
+					if err == nil {
+						break KeepAliveLoop
 					} else {
 						log.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
 						if i == 4 {
-							log.Panic("[RabbitMQ] 无法恢复 Channel，进程退出。")
+							log.Fatal("[RabbitMQ] 无法恢复 Channel，进程退出。")
 						}
 					}
 				}
@@ -430,7 +432,7 @@ func consumeLoop(deliveries <-chan amqp.Delivery, handlerFunc func(d amqp.Delive
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Error("%s: %s", msg, err)
 		panic(fmt.Sprintf("%s: %s", msg, err))
 	}
 }
