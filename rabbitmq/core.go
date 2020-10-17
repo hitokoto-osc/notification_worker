@@ -432,7 +432,7 @@ func consumeLoop(deliveries <-chan amqp.Delivery, handlerFunc func(d amqp.Delive
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Error("%s: %s", msg, err)
-		panic(fmt.Sprintf("%s: %s", msg, err))
+		log.Error("%s: %s", msg, err.Error())
+		panic(fmt.Sprintf("%s: %s", msg, err.Error()))
 	}
 }
