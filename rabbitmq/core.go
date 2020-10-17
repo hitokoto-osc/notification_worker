@@ -103,6 +103,7 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 	}
 	m.conn = conn
 	go func() {
+        BREAK:
 		for {
 			select {
 			case err := <-conn.NotifyClose(make(chan *amqp.Error)):
@@ -132,7 +133,7 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 						log.Error("[RabbitMQ] AMQP 重连接失败，错误信息：" + e.Error())
 					} else {
 						log.Info("[RabbitMQ] AMQP 连接已成功重建")
-						break
+						break  BREAK
 					}
 					if i == 4 {
 						log.Panic("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
@@ -314,14 +315,7 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 	go func() {
 		for {
 			select {
-			case e := <-notifyClose:
-				log.Errorf("[RabbitMQ] Channel: %v:%v:%v:%v 错误，错误信息："+e.Error(),
-					queueName,
-					bindingKey,
-					exchangeName,
-					consumerName,
-				)
-
+			case <-notifyClose:
 				// TODO: 修复重复尝试机制，目前设置为 30 秒避免直接杀死进程
 				for i := 0; i < 5; i++ {
 					log.Infof("[RabbitMQ] 将在 30 s 后尝试重新注册 Channel: %v:%v:%v:%v", queueName,
