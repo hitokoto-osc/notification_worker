@@ -59,7 +59,7 @@ func (t *hitokotoPollFinishedEvent) Receiver() *rabbitmq.Receiver {
 			}
 
 			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>投票（id: %s）于 %s 由系统自动处理。</p>
+<p>投票（id: %d）于 %s 由系统自动处理。</p>
 <p>句子信息：</p>
 <ul>
   <li>内容：%s</li>
@@ -94,7 +94,7 @@ func (t *hitokotoPollFinishedEvent) Receiver() *rabbitmq.Receiver {
 
 type hitokotoPollFinishedMessage struct {
 	hitokotoAppendedMessage
-	Id        string `json:"id"`         // 投票 ID
+	Id        int `json:"id"`         // 投票 ID
 	UpdatedAt string `json:"updated_at"` // 投票更新时间，这里也是结束时间
 	UserName  string `json:"user_name"`  // 审核员名字
 	CreatedAt string `json:"created_at"` // 投票创建时间
