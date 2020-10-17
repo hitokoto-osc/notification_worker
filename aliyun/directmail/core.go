@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dm"
 	log "github.com/sirupsen/logrus"
-	config "source.hitokoto.cn/hitokoto/notification-worker/src/config"
+	config "source.hitokoto.cn/hitokoto/notification-worker/config"
 )
 
 var client *dm.Client

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/config"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/rabbitmq"
+	"source.hitokoto.cn/hitokoto/notification-worker/config"
+	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 	"strconv"
 )
 

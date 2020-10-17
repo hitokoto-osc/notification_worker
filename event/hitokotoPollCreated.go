@@ -4,8 +4,8 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/aliyun/directmail"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/rabbitmq"
+	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 	"time"
 )
 

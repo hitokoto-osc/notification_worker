@@ -5,6 +5,8 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"gopkg.in/errgo.v2/errors"
+	"runtime"
 	"time"
 )
 
@@ -95,18 +97,48 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 	}
 
 	var err error
-	m.conn, err = amqp.Dial(fmt.Sprintf("%s/", connectionString))
+	conn, err := amqp.Dial(fmt.Sprintf("%s/", connectionString))
 	if err != nil {
 		panic("Failed to connect to AMQP compatible broker at: " + connectionString)
 	}
+	m.conn = conn
 	go func() {
 		for {
 			select {
-			case err := <-m.conn.NotifyClose(make(chan *amqp.Error)):
+			case err := <-conn.NotifyClose(make(chan *amqp.Error)):
 				log.Error("[RabbitMQ] AMQP连接丢失，错误信息" + err.Error())
-				log.Info("[RabbitMQ] AMQP 连接将在 3 秒后尝试重连接...")
-				time.Sleep(1000)
-				m.ConnectToBroker(connectionString)
+				for i := 0; i < 5; i++ {
+					log.Info("[RabbitMQ] AMQP 连接将在 5 秒后尝试重连接...")
+					time.Sleep(5 * time.Second)
+					e := func() (errTmp error) {
+						defer func() {
+							if e := recover(); e != nil {
+								switch e := e.(type) {
+								case string:
+									errTmp = errors.New(e)
+								case error:
+									errTmp = e
+								case runtime.Error:
+									errTmp = e
+								default:
+									panic(e)
+								}
+							}
+						}()
+						m.ConnectToBroker(connectionString)
+						return
+					}()
+					if e != nil {
+						log.Error("[RabbitMQ] AMQP 重连接失败，错误信息：" + e.Error())
+					} else {
+						log.Info("[RabbitMQ] AMQP 连接已成功重建")
+						break
+					}
+					if i == 4 {
+						log.Panic("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
+					}
+
+				}
 			}
 		}
 	}()
@@ -247,7 +279,7 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 	queue, err := ch.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
-		false,     // delete when usused
+		false,     // delete when unused
 		false,     // exclusive
 		false,     // noWait
 		nil,       // arguments
@@ -283,25 +315,54 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 		for {
 			select {
 			case e := <-notifyClose:
-				log.Error("[RabbitMQ] Channel 错误，错误信息：" + e.Error())
+				log.Errorf("[RabbitMQ] Channel: %v:%v:%v:%v 错误，错误信息："+e.Error(),
+					queueName,
+					bindingKey,
+					exchangeName,
+					consumerName,
+				)
 
-				close(notifyClose)
-				for i := 0; i < 3; i++ {
-					log.Info("[RabbitMQ] 将在 5 s 后尝试重新注册 Channel")
-					time.Sleep(5 * time.Second)
-					err = m.Subscribe(
-						exchangeName,
-						exchangeType,
-						queueName,
-						consumerName,
+				// TODO: 修复重复尝试机制，目前设置为 30 秒避免直接杀死进程
+				for i := 0; i < 5; i++ {
+					log.Infof("[RabbitMQ] 将在 30 s 后尝试重新注册 Channel: %v:%v:%v:%v", queueName,
 						bindingKey,
-						handlerFunc,
-					)
+						exchangeName,
+						consumerName)
+					time.Sleep(30 * time.Second)
+					log.Debugf("[RabbitMQ] 开始注册 Channel：%v:%v:%v:%v", queueName,
+						bindingKey,
+						exchangeName,
+						consumerName)
+					err := func() (err error) {
+						defer func() {
+							if erron := recover(); erron != nil {
+								switch erron := erron.(type) {
+								case string:
+									err = errors.New(erron)
+								case error:
+									err = erron
+								case runtime.Error:
+									err = erron
+								default:
+									panic(erron)
+								}
+							}
+						}()
+						err = m.Subscribe(
+							exchangeName,
+							exchangeType,
+							queueName,
+							consumerName,
+							bindingKey,
+							handlerFunc,
+						)
+						return
+					}()
 					if err == nil { // 重试三次
 						break
 					} else {
 						log.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
-						if i == 2 {
+						if i == 4 {
 							log.Panic("[RabbitMQ] 无法恢复 Channel，进程退出。")
 						}
 					}
@@ -322,7 +383,7 @@ func (m *AmqpClient) SubscribeToQueue(queueName string, consumerName string, han
 	queue, err := ch.QueueDeclare(
 		queueName, // name of the queue
 		false,     // durable
-		false,     // delete when usused
+		false,     // delete when unused
 		false,     // exclusive
 		false,     // noWait
 		nil,       // arguments
