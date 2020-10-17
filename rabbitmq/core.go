@@ -136,7 +136,7 @@ func (m *AmqpClient) ConnectToBroker(connectionString string) {
 						break  BREAK
 					}
 					if i == 4 {
-						log.Panic("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
+						log.Fatal("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
 					}
 
 				}
