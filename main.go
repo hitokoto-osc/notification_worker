@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 
 	// 项目内文件
-	"source.hitokoto.cn/hitokoto/notification-worker/src/config"
-	"source.hitokoto.cn/hitokoto/notification-worker/src/event"
+	"source.hitokoto.cn/hitokoto/notification-worker/config"
+	"source.hitokoto.cn/hitokoto/notification-worker/event"
 
 	// 外部依赖
 	log "github.com/sirupsen/logrus"
@@ -27,6 +27,7 @@ func initLogger() {
 	// Log as JSON instead of the default ASCII formatter.
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
+		ForceColors:   true,
 	})
 
 	// Output to stdout instead of the default stderr
@@ -46,7 +47,7 @@ func init() {
 	flag.StringVar(&c, "c", "", "设定配置文件")
 	flag.Parse()
 	if v {
-		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \nGitCommit: %s \n", Version, GitCommit)
+		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n编译时间：%s\n", Version, BuildHash, BuildTime)
 		os.Exit(0)
 	}
 	initLogger()
@@ -62,7 +63,7 @@ func init() {
 }
 
 func main() {
-	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 Git 标签：" + GitCommit)
+	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 版控哈希：" + BuildHash)
 	go event.InitRabbitMQEvent()
 	select {} // 堵塞方法
 }

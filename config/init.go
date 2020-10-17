@@ -15,6 +15,9 @@ func Init(path string) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".") // 二进制执行目录
+	viper.AddConfigPath("./bin")
+	viper.AddConfigPath("..")      // 二进制上级目录
+	viper.AddConfigPath("../conf") // 二进制上级目录的配置文件夹
 	viper.AddConfigPath(path)
 	err := viper.ReadInConfig() // 根据以上配置读取加载配置文件
 	if err != nil {
