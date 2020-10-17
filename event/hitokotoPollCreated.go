@@ -34,7 +34,7 @@ func (t *hitokotoPollCreatedEvent) Receiver() *rabbitmq.Receiver {
 				return err
 			}
 			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>我们在 %s 创建了一则新投票（id: %s）。</p>
+<p>我们在 %s 创建了一则新投票（id: %d）。</p>
 <p>句子信息：</p>
 <ul>
   <li>内容：%s</li>
@@ -65,6 +65,6 @@ func (t *hitokotoPollCreatedEvent) Receiver() *rabbitmq.Receiver {
 type hitokotoPollCreatedMessage struct {
 	hitokotoAppendedMessage
 	UserName  string `json:"user_name"`  // 收信人
-	Id        string `json:"id"`         // 投票标识
+	Id        int `json:"id"`         // 投票标识
 	CreatedAt string `json:"created_at"` // 这里是投票创建时间， ISO 时间
 }

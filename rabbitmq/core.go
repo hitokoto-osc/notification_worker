@@ -309,7 +309,7 @@ func (m *AmqpClient) Subscribe(exchangeName string, exchangeType string, queueNa
 		nil,          // args
 	)
 	failOnError(err, "Failed to register a consumer")
-	go consumeLoop(msgs, handlerFunc)
+	go consumeLoop(msgs, consumerName, handlerFunc)
 	go func() {
 		KeepAliveLoop:
 		for {
@@ -397,7 +397,7 @@ func (m *AmqpClient) SubscribeToQueue(queueName string, consumerName string, han
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	go consumeLoop(msgs, handlerFunc)
+	go consumeLoop(msgs,consumerName, handlerFunc)
 	return nil
 }
 
@@ -411,7 +411,7 @@ func (m *AmqpClient) Close() {
 	}
 }
 
-func consumeLoop(deliveries <-chan amqp.Delivery, handlerFunc func(d amqp.Delivery) error) {
+func consumeLoop(deliveries <-chan amqp.Delivery, consumerName string, handlerFunc func(d amqp.Delivery) error) {
 	for d := range deliveries {
 		// Invoke the handlerFunc func we passed as parameter.
 		err := handlerFunc(d)

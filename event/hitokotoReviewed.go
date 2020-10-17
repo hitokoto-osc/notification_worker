@@ -54,7 +54,7 @@ func (t *hitokotoReviewedEvent) Receiver() *rabbitmq.Receiver {
 			}
 			html := fmt.Sprintf(`<h2>您好，%s。</h2>
 <p>您于 %s 提交的句子： <b>%s</b> —— %s 「%s」， 已经审核完成。</p>
-<p>审核结果为：<strong>%s</strong>，审核员 %s (%s) 于 %s 操作审核%s</p>
+<p>审核结果为：<strong>%s</strong>，审核员 %s (%d) 于 %s 操作审核%s</p>
 <br />
 <p>感谢您的支持，<br />
 萌创团队 - 一言项目组<br />
@@ -80,6 +80,6 @@ type hitokotoReviewedMessage struct {
 	hitokotoAppendedMessage
 	OperatedAt   string `json:"operated_at"`   // 操作时间
 	ReviewerName string `json:"reviewer_name"` // 审核员名称
-	ReviewerUid  string `json:"reviewer_uid"`  // 审核员用户标识
+	ReviewerUid  int `json:"reviewer_uid"`  // 审核员用户标识
 	Status       int    `json:"status"`        // 审核结果： 200 为通过，201 为驳回
 }
