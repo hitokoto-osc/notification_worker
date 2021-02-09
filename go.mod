@@ -3,7 +3,7 @@ module source.hitokoto.cn/hitokoto/notification-worker
 go 1.14
 
 require (
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.545
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.920
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/sirupsen/logrus v1.7.0
