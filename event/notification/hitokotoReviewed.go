@@ -1,6 +1,7 @@
-package event
+package notification
 
 import (
+	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -10,22 +11,33 @@ import (
 	"time"
 )
 
-type hitokotoReviewedEvent struct {
-}
-
-// 处理一言成功添加事件
-func (t *hitokotoReviewedEvent) Receiver() *rabbitmq.Receiver {
-	return &rabbitmq.Receiver{
-		ExchangeType: amqp.ExchangeDirect,
-		ExchangeName: "notification",
-		ConsumerName: "HitokotoReviewedNotificationWorker",
-		QueueName:    "hitokoto_reviewed",
-		BindingKey:   "notification.hitokoto_reviewed", // 路由键
-		Deliveries:   make(chan amqp.Delivery),
-		HandlerFunc: func(msg amqp.Delivery) error { // 回调处理方法
-			log.Debugf("[hitokoto_reviewed]收到消息: %v  \n", string(msg.Body))
+// HitokotoReviewedEvent 处理一言成功添加事件
+func HitokotoReviewedEvent ()  *rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions {
+		Exchange: rabbitmq.Exchange{
+			Name:    "notification",
+			Type:    "direct",
+			Durable: true,
+		},
+		Queue: rabbitmq.Queue{
+			Name:    "hitokoto_reviewed",
+			Durable: true,
+			Args: amqp.Table{
+				"x-dead-letter-exchange":    "notification_failed",
+				"x-dead-letter-routing-key": "notification_failed.notification_failed_collector",
+			},
+		},
+		BindingOptions: rabbitmq.BindingOptions{
+			RoutingKey: "notification.hitokoto_reviewed",
+		},
+		ConsumerOptions: rabbitmq.ConsumerOptions{
+			Tag:        "HitokotoReviewedNotificationWorker",
+			AckByError: true,
+		},
+		CallFunc: func(delivery amqp.Delivery) error {
+			log.Debugf("[hitokoto_reviewed]收到消息: %v  \n", string(delivery.Body))
 			message := hitokotoReviewedMessage{}
-			err := json.Unmarshal(msg.Body, &message)
+			err := json.Unmarshal(delivery.Body, &message)
 			if err != nil {
 				return err
 			}

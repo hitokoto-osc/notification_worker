@@ -1,39 +1,45 @@
 package event
 
 import (
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"source.hitokoto.cn/hitokoto/notification-worker/config"
+	"source.hitokoto.cn/hitokoto/notification-worker/event/notification"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
-	"strconv"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func InitRabbitMQEvent() {
 	log.Info("注册消息队列接收器...")
-	rabbitMQConfig := &config.RabbitMQ{}
-	rabbitMQClient := &rabbitmq.AmqpClient{}
-	connectionStr := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitMQConfig.User(), rabbitMQConfig.Pass(), rabbitMQConfig.Host(), strconv.Itoa(rabbitMQConfig.Port()))
-	rabbitMQClient.ConnectToBroker(connectionStr)
-
-	consumer := &rabbitmq.Consumer{
-		Client:    rabbitMQClient,
-		Receivers: []*rabbitmq.Receiver{},
+	c := &config.RabbitMQ{}
+	instant := rabbitmq.New(&rabbitmq.Config{
+		Host:     c.Host(),
+		Port:     c.Port(),
+		Username: c.User(),
+		Password: c.Pass(),
+		Vhost:    c.VHost(),
+	}, log.StandardLogger())
+	if err := instant.Init(); err != nil {
+		log.Fatal(err)
 	}
 
 	// 注册接收器
-	consumer.Add((&hitokotoAppendedEvent{}).Receiver())
-	consumer.Add((&hitokotoReviewedEvent{}).Receiver())
-	consumer.Add((&hitokotoPollCreatedEvent{}).Receiver())
-	consumer.Add((&hitokotoPollFinishedEvent{}).Receiver())
-	consumer.Add((&hitokotoPollDailyReportEvent{}).Receiver())
-	log.Info("已成功注册消息接收器，开始处理消息。")
-
-	consumer.Subscribe()
-
-	// TODO: 加入 Publish 接口
-
+	log.Info("开始注册消息接收器...")
+	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
+	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCollectEvent(instant))
+	instant.RegisterConsumerConfig(*notification.HitokotoAppendedEvent())
+	instant.RegisterConsumerConfig(*notification.HitokotoReviewedEvent())
+	instant.RegisterConsumerConfig(*notification.HitokotoPollCreatedEvent())
+	instant.RegisterConsumerConfig(*notification.HitokotoPollFinishedEvent())
+	instant.RegisterConsumerConfig(*notification.HitokotoPollDailyReportEvent())
+	handleErr(instant.ConsumerSubscribe())
+	log.Info("已注册消息接收器，开始处理消息。")
 	select {}
+}
+
+func handleErr (e error) {
+	if e != nil {
+		log.Fatal(e)
+	}
 }

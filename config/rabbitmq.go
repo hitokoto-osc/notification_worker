@@ -8,7 +8,8 @@ func loadRabbitMQ() {
 	viper.SetDefault("rabbitmq.host", "127.0.0.1")
 	viper.SetDefault("rabbitmq.port", 5672)
 	viper.SetDefault("rabbitmq.user", "admin")
-	viper.SetDefault("rabbitmq.pass", "123456")
+	viper.SetDefault("rabbitmq.pass", "")
+	viper.SetDefault("rabbitmq.vhost", "")
 }
 
 type RabbitMQ struct {
@@ -28,4 +29,8 @@ func (t *RabbitMQ) User() string {
 
 func (t *RabbitMQ) Pass() string {
 	return viper.GetString("rabbitmq.pass")
+}
+
+func (t *RabbitMQ) VHost() string {
+	return viper.GetString("rabbitmq.vhost")
 }

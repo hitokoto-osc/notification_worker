@@ -1,6 +1,7 @@
-package event
+package notification
 
 import (
+	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -9,22 +10,33 @@ import (
 	"strconv"
 	"time"
 )
-
-type hitokotoPollDailyReportEvent struct {
-}
-
-func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
-	return &rabbitmq.Receiver{
-		ExchangeType: amqp.ExchangeDirect,
-		ExchangeName: "notification",
-		ConsumerName: "HitokotoPollDailyReportNotificationWorker",
-		QueueName:    "hitokoto_poll_daily_report",
-		BindingKey:   "notification.hitokoto_poll_daily_report", // 路由键
-		Deliveries:   make(chan amqp.Delivery),
-		HandlerFunc: func(msg amqp.Delivery) error { // 回调处理方法
-			log.Printf("[hitokoto_poll_daily_report]收到消息: %v  \n", string(msg.Body))
+// HitokotoPollDailyReportEvent 每日审核员报告事件
+func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions {
+		Exchange: rabbitmq.Exchange{
+			Name:    "notification",
+			Type:    "direct",
+			Durable: true,
+		},
+		Queue: rabbitmq.Queue{
+			Name:    "hitokoto_poll_daily_report",
+			Durable: true,
+			Args: amqp.Table{
+				"x-dead-letter-exchange":    "notification_failed",
+				"x-dead-letter-routing-key": "notification_failed.notification_failed_collector",
+			},
+		},
+		BindingOptions: rabbitmq.BindingOptions{
+			RoutingKey: "notification.hitokoto_poll_daily_report",
+		},
+		ConsumerOptions: rabbitmq.ConsumerOptions{
+			Tag:        "HitokotoPollDailyReportNotificationWorker",
+			AckByError: true,
+		},
+		CallFunc: func(delivery amqp.Delivery) error {
+			log.Printf("[hitokoto_poll_daily_report]收到消息: %v  \n", string(delivery.Body))
 			message := hitokotoPollDailyReportMessage{}
-			err := json.Unmarshal(msg.Body, &message)
+			err := json.Unmarshal(delivery.Body, &message)
 			if err != nil {
 				return err
 			}
@@ -85,7 +97,6 @@ func (t *hitokotoPollDailyReportEvent) Receiver() *rabbitmq.Receiver {
 		},
 	}
 }
-
 type hitokotoPollDailyReportMessage struct {
 	CreatedAt         string                                          `json:"created_at"`         // 报告生成时间
 	To                string                                          `json:"to"`                 // 接收人地址
