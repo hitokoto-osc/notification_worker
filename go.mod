@@ -1,6 +1,6 @@
 module source.hitokoto.cn/hitokoto/notification-worker
 
-go 1.14
+go 1.16
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.545
