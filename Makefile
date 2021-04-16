@@ -1,39 +1,54 @@
-OWNER               := hitokoto
-BIN_NAME            := worker
-PROJECT_NAME        := notification_worker
-GIT_COMMIT          := $(shell git rev-parse HEAD)
-GIT_DIRTY           :=
-BUILD_TAGS          :=
-VERSION             := $(shell grep "Version" version.go | awk '{print $$4}' | sed 's/\"//g')
-BUILDBOX_BRANCH     := $(shell echo $$BUILDBOX_BRANCH)
-BUILD_TIME          := $(shell date "+%F %T")
-BUILD_TIME_WINDOWS  := $(shell date +"%Y-%m-%d %T")
-.PHONY: build
+PROJECT_NAME := "notification_worker"
+PROJECT_PATH := "github.com/hitokoto-osc/notification_worker"
+PKG := "$(PROJECT_PATH)"
+PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
+GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/ | grep -v _test.go)
 
-ifneq ($(shell git status --porcelain) , "")
-    GIT_DIRTY=+CHANGES
-endif
+.PHONY: all dep get-tools lint vet test test-coverage build clean
 
-# building the master branch on ci
-ifeq ($(BUILDBOX_BRANCH) , "master")
-    BUILD_TAGS :=-tags release
-endif
+all:
+	build
 
-# 构建二进制文件
-define build
-go build -a \
-   	-ldflags "-X 'main.BuildHash=$(GIT_COMMIT)$(GIT_DIRTY)' -X 'main.BuildTime=$(2)'" \
-   	-o ./bin/$(BIN_NAME)_$(VERSION)_$(1)
-endef
+get-tools:
+	@echo Installing tools...
+	go get -u github.com/mgechev/revive
 
-build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(call build,linux_amd64,$(BUILD_TIME))
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(call build,darwin_amd64,$(BUILD_TIME))
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(call build,windows_amd64.exe,$(BUILD_TIME))
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(call build,linux_arm64,$(BUILD_TIME))
+dep: # get dependencies
+	@echo Installing Dependencies...
+	go mod download
 
-build-pwsh:
-	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(call build,linux_amd64,$(BUILD_TIME_WINDOWS))
-	env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(call build,darwin_amd64,$(BUILD_TIME_WINDOWS))
-	env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(call build,windows_amd64.exe,$(BUILD_TIME_WINDOWS))
-	env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(call build,linux_arm64,$(BUILD_TIME_WINDOWS))
+lint: get-tools ## Lint Golang files
+	@echo
+	@echo Linting go codes with revive...
+	@revive -config ./.revive.toml -formatter stylish ${PKG_LIST}
+
+vet:
+	@echo Linting go codes with go vet...
+	go vet ./...
+
+build: dep
+	@echo;
+	@echo Building...;
+	@mkdir -p dist;
+	go build -v -o dist/${PROJECT_NAME} .;
+
+test:
+	@echo Testing...
+	@go test -short ${PKG_LIST}
+
+test-coverage:
+	@go test -short -coverprofile cover.out -covermode=atomic ${PKG_LIST}
+	@cat cover.out >> coverage.txt
+
+clean:
+	@rm -f coverage.txt
+	@rm -f cover.out
+
+release:
+	@echo Releasing by GoReleaser...
+	@goreleaser release --rm-dist
+
+precommit: vet lint test
+	go fmt ./...
+	go mod tidy
+	git add .

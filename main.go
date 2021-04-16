@@ -18,6 +18,10 @@ import (
 
 // 程序信息
 var (
+ 	Version = "1.0.2"
+	BuildTag = "Unknown"
+	BuildTime = "Unknown"
+	CommitTime = "Unknown"
 	DEBUG = true
 	v     bool
 	c     string
@@ -47,23 +51,23 @@ func init() {
 	flag.StringVar(&c, "c", "", "设定配置文件")
 	flag.Parse()
 	if v {
-		fmt.Printf("NotificationWorker ©2020 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n编译时间：%s\n", Version, BuildHash, BuildTime)
+		fmt.Printf("NotificationWorker ©2021 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n提交时间：%s\n编译时间：%s\n", Version, BuildTag,CommitTime, BuildTime)
 		os.Exit(0)
 	}
 	initLogger()
 	config.Init(c)
 	// 设置生产日记级别
 	if config.Debug() {
-		log.SetLevel(log.DebugLevel)
+		DEBUG = true
 	} else {
-		log.SetLevel(log.InfoLevel)
+		DEBUG = false
 	}
 	// 初始化阿里云 SDK
 	directmail.InitAliyunDirectMail()
 }
 
 func main() {
-	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 版控哈希：" + BuildHash)
+	log.Infoln("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 版控哈希：" + BuildTag)
 	go event.InitRabbitMQEvent()
 	select {} // 堵塞方法
 }
