@@ -2,12 +2,12 @@ package notification
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"runtime"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
-	"sync"
 	"time"
 )
 
@@ -23,38 +23,46 @@ func getProducer(instant *rabbitmq.RabbitMQInstant, exchangeName, queueName, rou
 		}
 		return producer, nil
 	}
-	return instant.RegisterProducer(rabbitmq.ProducerRegisterOptions{
-		Exchange:    rabbitmq.Exchange{
-			Name: exchangeName,
-			Type: "direct",
+	producer, err := instant.RegisterProducer(rabbitmq.ProducerRegisterOptions{
+		Exchange: rabbitmq.Exchange{
+			Name:    exchangeName,
+			Type:    "direct",
 			Durable: true,
 		},
-		Queue:             rabbitmq.Queue{
-			Name: queueName,
+		Queue: rabbitmq.Queue{
+			Name:    queueName,
 			Durable: true,
 		},
-		BindingOptions: rabbitmq.BindingOptions{
-			RoutingKey: func () string {
+		PublishingOptions: rabbitmq.PublishingOptions{
+			RoutingKey: func() string {
 				if routingKey == "" {
 					return exchangeName + "." + queueName
 				} else {
 					return routingKey
-				}}(),
+				}
+			}(),
 		},
-		PublishingOptions: rabbitmq.PublishingOptions{},
 	})
+	if err != nil {
+		return nil, err
+	}
+	ProducerMapping[producer.GetRoutingKey()] = producer.UUID
+	return producer, nil
 }
 
-func checkXDeathCount (xDeath []amqp.Table) (int) {
-	count := 0
+func checkXDeathCount(xDeath []interface{}) int64 {
+	count := int64(0)
 	for _, v := range xDeath {
+		v := v.(amqp.Table)
 		c, o := v["count"]
+		log.Debug(c)
+		log.Debug(v)
 		if !o {
 			// TODO: 未来解决，理论上不可能
 			log.Warn("[event.hitokotoFailedMessageCollector] checkXDeathCount: unexpected behavior")
 			log.Warn(xDeath)
 		}
-		count += c.(int)
+		count += c.(int64)
 	}
 	return count
 }
@@ -62,7 +70,7 @@ func checkXDeathCount (xDeath []amqp.Table) (int) {
 func wrapperHeader(header amqp.Table, body []byte) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"header": header,
-		"body": string(body),
+		"body":   string(body),
 	})
 }
 
@@ -104,9 +112,9 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbi
 						log.Error(e)
 						err = errors.New("unknown error")
 					}
-
 				}
 			}()
+			log.Debugf("[RabbitMQ.Producer.FailedMessageCollector] Headers: %+v", delivery.Headers)
 			XDeath, ok := delivery.Headers["x-death"]
 			if !ok {
 				return errors.New("x-death is missing")
@@ -124,23 +132,19 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbi
 			if err != nil {
 				return err
 			}
-			if count := checkXDeathCount(XDeath.([]amqp.Table)); count <= 5 {
+			if count := checkXDeathCount(XDeath.([]interface{})); count <= 5 {
+				log.Debugf("[RabbitMQ.Producer.FailedMessageCollector] 当前错误计数：%v，尝试重新投递... ", count)
 				time.Sleep(1 * time.Second) // 暂停 1 s
 				if err = producer.Publish(amqp.Publishing{
+					DeliveryMode: amqp.Persistent,
+					Headers: delivery.Headers,
 					Body: delivery.Body,
 				}); err != nil {
-					return err
+					return errors.WithMessagef(err, "[RabbitMQ.Producer.FailedMessageCollector] publish original queue (%v) failed.", fmt.Sprintf("%v.%v", OriginalExchangeName, OriginalQueueName))
 				}
-				wg := sync.WaitGroup{}
-				wg.Add(1)
-				producer.NotifyReturn(func(message amqp.Return) {
-					if message.ReplyCode != 200 {
-						err = errors.Errorf("[RabbitMQ.Producer.FailedMessageCollector] publish original queue failed. %v - %v", message.ReplyCode, message.ReplyText)
-					}
-					wg.Done()
-				})
-				wg.Wait()
+				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重新投递成功")
 			} else {
+				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重试次数过多，投递死信桶。")
 				// 丢到死信桶队列（无法恢复）
 				producer, err = getProducer(instant, "notification_failed", "notification_failed_can", "notification_failed.notification_failed_can")
 				if err != nil {
@@ -152,19 +156,13 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbi
 					return err
 				}
 				if err = producer.Publish(amqp.Publishing{
+					DeliveryMode: amqp.Persistent,
+					Headers: delivery.Headers,
 					Body: body,
 				}); err != nil {
-					return err
+					return errors.WithMessage(err, "[RabbitMQ.Producer.FailedMessageCollector] publish can queue failed.")
 				}
-				wg := sync.WaitGroup{}
-				wg.Add(1)
-				producer.NotifyReturn(func(message amqp.Return) {
-					if message.ReplyCode != 200 {
-						err = errors.Errorf("[RabbitMQ.Producer.FailedMessageCollector] publish can queue failed. %v - %v", message.ReplyCode, message.ReplyText)
-					}
-					wg.Done()
-				})
-				wg.Wait()
+				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 投递成功.")
 			}
 			return
 		},

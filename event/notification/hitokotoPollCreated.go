@@ -11,8 +11,8 @@ import (
 )
 
 // HitokotoPollCreatedEvent 处理一言成功添加事件
-func HitokotoPollCreatedEvent () *rabbitmq.ConsumerRegisterOptions {
-	return &rabbitmq.ConsumerRegisterOptions {
+func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification",
 			Type:    "direct",
@@ -77,6 +77,6 @@ func HitokotoPollCreatedEvent () *rabbitmq.ConsumerRegisterOptions {
 type hitokotoPollCreatedMessage struct {
 	hitokotoAppendedMessage
 	UserName  string `json:"user_name"`  // 收信人
-	Id        int `json:"id"`         // 投票标识
+	Id        int    `json:"id"`         // 投票标识
 	CreatedAt string `json:"created_at"` // 这里是投票创建时间， ISO 时间
 }

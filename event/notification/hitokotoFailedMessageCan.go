@@ -2,6 +2,7 @@ package notification
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
@@ -31,6 +32,7 @@ func HitokotoFailedMessageCanEvent() *rabbitmq.ConsumerRegisterOptions {
 			AckByError: true,
 		},
 		CallFunc: func(delivery amqp.Delivery) error {
+			log.Debugf("[RabbitMQ.Producer.FailedMessageCan] 收到死信：%v", string(delivery.Body))
 			html := fmt.Sprintf(`<h1>您好，a632079。</h1>
 <p>系统遇到了一封无法处理的死信，以下为详细信息：</p>
 <pre>

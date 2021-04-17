@@ -13,7 +13,7 @@ import (
 
 // HitokotoPollFinishedEvent 一言投票完成事件
 func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
-	return &rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification",
 			Type:    "direct",
@@ -108,7 +108,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 
 type hitokotoPollFinishedMessage struct {
 	hitokotoAppendedMessage
-	Id        int `json:"id"`         // 投票 ID
+	Id        int    `json:"id"`         // 投票 ID
 	UpdatedAt string `json:"updated_at"` // 投票更新时间，这里也是结束时间
 	UserName  string `json:"user_name"`  // 审核员名字
 	CreatedAt string `json:"created_at"` // 投票创建时间

@@ -6,7 +6,8 @@ import (
 	"github.com/streadway/amqp"
 	"time"
 )
-
+// Producer is RabbitMQ Producer wrapper
+// TODO: 修复 done 的信道的使用
 type Producer struct {
 	// Producer UUID
 	UUID string
@@ -37,25 +38,26 @@ type PublishingOptions struct {
 // on both the publisher and consumer to be able to change the settings only in
 // one place. We can declare those settings on both place to ensure they are
 // same. But this package will not support it.
-func (r *RabbitMQ) NewProducer(e Exchange, q Queue, bo BindingOptions, po PublishingOptions) (*Producer, error) {
+func (r *RabbitMQ) NewProducer(e Exchange, q Queue, po PublishingOptions) (*Producer, error) {
 
 	if r.Conn() == nil {
 		return nil, errors.WithStack(errors.New("[RabbitMQ.Producer] RabbitMQ Connection is missing"))
 	}
 
 	// getting a channel
+	mutex.Lock()
 	channel, err := r.conn.Channel()
+	mutex.Unlock()
 	if err != nil {
 		return nil, err
 	}
 	producer := &Producer{
-		UUID: uuid.NewV4().String(),
+		UUID:     uuid.NewV4().String(),
 		RabbitMQ: r,
 		channel:  channel,
 		session: Session{
 			Exchange:          e,
 			Queue:             q,
-			BindingOptions: bo,
 			PublishingOptions: &po,
 		},
 	}
@@ -78,9 +80,12 @@ func (p *Producer) HandleError() {
 					err := func() error {
 						var ch *amqp.Channel
 						var err error
+						mutex.Lock()
 						if ch, err = p.RabbitMQ.Conn().Channel(); err != nil {
+							mutex.Unlock()
 							return err
 						}
+						mutex.Unlock()
 						p.channel = ch
 						return nil
 					}()
@@ -98,21 +103,21 @@ func (p *Producer) HandleError() {
 	}()
 }
 
+func (p *Producer) GetRoutingKey () string {
+	routingKey := p.session.PublishingOptions.RoutingKey
+	// if exchange name is empty, this means we are gonna publish
+	// this mesage to a queue, every queue has a binding to default exchange
+	if p.session.Exchange.Name == "" {
+		routingKey = p.session.Queue.Name
+	}
+	return routingKey
+}
+
 // Publish sends a Publishing from the client to an exchange on the server.
 func (p *Producer) Publish(publishing amqp.Publishing) error {
 	e := p.session.Exchange
-	q := p.session.Queue
 	po := p.session.PublishingOptions
-	bo := p.session.BindingOptions
-	routingKey := po.RoutingKey
-	// if exchange name is empty, this means we are gonna publish
-	// this mesage to a queue, every queue has a binding to default exchange
-	if e.Name == "" {
-		routingKey = q.Name
-	}
-	if bo.RoutingKey != "" {
-		routingKey = bo.RoutingKey
-	}
+	routingKey := p.GetRoutingKey()
 	err := p.channel.Publish(
 		e.Name,       // publish to an exchange(it can be default exchange)
 		routingKey,   // routing to 0 or more queues

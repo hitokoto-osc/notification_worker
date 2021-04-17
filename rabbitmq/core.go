@@ -6,9 +6,12 @@ import (
 	"github.com/streadway/amqp"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
+
+var mutex sync.Mutex
 
 type RabbitMQ struct {
 	// The RabbitMQ connection between client and the server
@@ -22,7 +25,7 @@ type RabbitMQ struct {
 }
 
 // NewWrapper Create RabbitMQ wrapper
-func NewWrapper (config *Config, logger Logger) *RabbitMQ {
+func NewWrapper(config *Config, logger Logger) *RabbitMQ {
 	return &RabbitMQ{
 		config: config,
 		log:    logger,
@@ -37,7 +40,7 @@ func (r *RabbitMQ) Conn() *amqp.Connection {
 var channelShouldUpdateConn = make(chan int)
 
 // Dial RabbitMQ Connection
-func (r *RabbitMQ) Dial () (err error) {
+func (r *RabbitMQ) Dial() (err error) {
 	if r.config == nil {
 		return errors.WithStack(errors.New("[rabbitMQ] config is missing"))
 	}
@@ -53,7 +56,7 @@ func (r *RabbitMQ) Dial () (err error) {
 // On normal shutdowns, the chan will be closed.
 // To reconnect after a transport or protocol error, we should register a listener here and
 // re-connect to server
-func (r *RabbitMQ) handleError () {
+func (r *RabbitMQ) handleError() {
 	go func() {
 	KeepAliveLoop:
 		for {
@@ -147,7 +150,6 @@ func shutdownChannel(channel *amqp.Channel, tag string) error {
 
 	return nil
 }
-
 
 // registerSignalHandler helper function for stopping consumer or producer from
 // operating further

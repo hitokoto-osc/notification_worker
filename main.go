@@ -18,13 +18,13 @@ import (
 
 // 程序信息
 var (
- 	Version = "1.0.2"
-	BuildTag = "Unknown"
-	BuildTime = "Unknown"
+	Version    = "development"
+	BuildTag   = "Unknown"
+	BuildTime  = "Unknown"
 	CommitTime = "Unknown"
-	DEBUG = true
-	v     bool
-	c     string
+	DEBUG      = true
+	v          bool
+	c          string
 )
 
 func initLogger() {
@@ -51,7 +51,7 @@ func init() {
 	flag.StringVar(&c, "c", "", "设定配置文件")
 	flag.Parse()
 	if v {
-		fmt.Printf("NotificationWorker ©2021 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n提交时间：%s\n编译时间：%s\n", Version, BuildTag,CommitTime, BuildTime)
+		fmt.Printf("NotificationWorker ©2021 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n提交时间：%s\n编译时间：%s\n", Version, BuildTag, CommitTime, BuildTime)
 		os.Exit(0)
 	}
 	initLogger()

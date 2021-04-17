@@ -13,6 +13,13 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 func InitRabbitMQEvent() {
 	log.Info("注册消息队列接收器...")
 	c := &config.RabbitMQ{}
+	log.Info((&rabbitmq.Config{
+		Host:     c.Host(),
+		Port:     c.Port(),
+		Username: c.User(),
+		Password: c.Pass(),
+		Vhost:    c.VHost(),
+	}).URI())
 	instant := rabbitmq.New(&rabbitmq.Config{
 		Host:     c.Host(),
 		Port:     c.Port(),
@@ -26,8 +33,8 @@ func InitRabbitMQEvent() {
 
 	// 注册接收器
 	log.Info("开始注册消息接收器...")
-	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
 	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCollectEvent(instant))
+	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
 	instant.RegisterConsumerConfig(*notification.HitokotoAppendedEvent())
 	instant.RegisterConsumerConfig(*notification.HitokotoReviewedEvent())
 	instant.RegisterConsumerConfig(*notification.HitokotoPollCreatedEvent())
@@ -38,7 +45,7 @@ func InitRabbitMQEvent() {
 	select {}
 }
 
-func handleErr (e error) {
+func handleErr(e error) {
 	if e != nil {
 		log.Fatal(e)
 	}

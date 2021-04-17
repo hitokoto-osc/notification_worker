@@ -4,14 +4,15 @@ import "github.com/streadway/amqp"
 
 // Config is the rabbitmq connect profile
 type Config struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
 	Username string
 	Password string
-	Vhost string
+	Vhost    string
 }
+
 // URI convert config to amqp uri
-func (c *Config) URI () string {
+func (c *Config) URI() string {
 	return amqp.URI{
 		Scheme:   "amqp",
 		Host:     c.Host,
@@ -21,6 +22,7 @@ func (c *Config) URI () string {
 		Vhost:    c.Vhost,
 	}.String()
 }
+
 // Exchange defines rabbitMQ Exchange policy
 type Exchange struct {
 	// Exchange name

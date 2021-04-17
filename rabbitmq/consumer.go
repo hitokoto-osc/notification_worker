@@ -9,7 +9,7 @@ import (
 
 type Consumer struct {
 	// Producer UUID
-	UUID string
+	UUID     string
 	RabbitMQ *RabbitMQ
 	// The communication channel over connection
 	channel *amqp.Channel
@@ -20,6 +20,8 @@ type Consumer struct {
 	// A notifiyng channel for publishings
 	// will be used for sync. between close channel and consume handler
 	done chan error
+	// This signal is intended to notify close to  shutdown gracefully
+	closeSignal chan int
 	// Current producer connection settings
 	session Session
 }
@@ -31,7 +33,7 @@ type ConsumerOptions struct {
 	// When autoAck (also known as noAck) is true, the server will acknowledge
 	// deliveries to this consumer prior to writing the delivery to the network.  When
 	// autoAck is true, the consumer should not call Delivery.Ack
-	AutoAck bool // autoAck
+	AutoAck    bool // autoAck
 	AckByError bool // ack by system(if consumer func return error)
 	// Check Queue struct documentation
 	Exclusive bool // exclusive
@@ -44,7 +46,6 @@ type ConsumerOptions struct {
 	Args amqp.Table // arguments
 }
 
-
 func (c *Consumer) Deliveries() <-chan amqp.Delivery {
 	return c.deliveries
 }
@@ -56,13 +57,15 @@ func (r *RabbitMQ) NewConsumer(e Exchange, q Queue, bo BindingOptions, co Consum
 		return nil, errors.WithStack(errors.New("[RabbitMQ.Consumer] connection is nil"))
 	}
 	// getting a channel
+	mutex.Lock()
 	channel, err := r.conn.Channel()
+	mutex.Unlock()
 	if err != nil {
 		return nil, err
 	}
 
 	c := &Consumer{
-		UUID: uuid.NewV4().String(),
+		UUID:     uuid.NewV4().String(),
 		RabbitMQ: r,
 		channel:  channel,
 		done:     make(chan error),
@@ -97,9 +100,12 @@ func (c *Consumer) HandleError() {
 					err := func() error {
 						var ch *amqp.Channel
 						var err error
+						mutex.Lock()
 						if ch, err = c.RabbitMQ.Conn().Channel(); err != nil {
+							mutex.Unlock()
 							return err
 						}
+						mutex.Unlock()
 						c.channel = ch
 						return nil
 					}()
@@ -172,7 +178,7 @@ func (c *Consumer) Consume(handler func(delivery amqp.Delivery) error) error {
 	q := c.session.Queue
 	// Exchange bound to Queue, starting Consume
 	deliveries, err := c.channel.Consume(
-		// consume from real queue
+		//ass consume from real queue
 		q.Name,       // name
 		co.Tag,       // consumerTag,
 		co.AutoAck,   // autoAck
@@ -189,23 +195,34 @@ func (c *Consumer) Consume(handler func(delivery amqp.Delivery) error) error {
 	c.deliveries = deliveries
 	c.handler = handler
 
-	c.RabbitMQ.log.Info("handle: deliveries channel starting")
-
-	// handle all consumer errors, if required re-connect
-	// there are problems with reconnection logic for now
-	for delivery := range c.deliveries {
-		if err := handler(delivery); err != nil {
-			c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, err.Error(), string(delivery.Body))
-			if !co.AutoAck && co.AckByError {
-				_ = delivery.Ack(false) // ignore error
+	c.RabbitMQ.log.Infof("[RabbitMQ.Consumer] Tag: %v, deliveries channel started.", c.session.ConsumerOptions.Tag)
+	go func() {
+		// handle all consumer errors, if required re-connect
+		// there are problems with reconnection logic for now
+	consumeLoop:
+		for {
+			select {
+			case delivery := <-c.deliveries:
+				if e := handler(delivery); e != nil {
+					c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
+					if !co.AutoAck && co.AckByError {
+						c.RabbitMQ.log.Debug("[RabbitMQ.Consumer] exec NACK")
+						if e := delivery.Nack(false, false) ; e != nil {
+							c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+						}
+					}
+				} else if !co.AutoAck && co.AckByError {
+					if e := delivery.Ack(false); e != nil {
+						c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+					}
+				}
+			case <-c.closeSignal:
+				break consumeLoop
 			}
-		} else if !co.AutoAck && co.AckByError {
-			_ = delivery.Ack(true) // ignore error
 		}
-	}
-
-	c.RabbitMQ.log.Info("handle: deliveries channel closed")
-	c.done <- nil
+		c.RabbitMQ.log.Info("handle: deliveries channel closed")
+		c.done <- nil
+	}()
 	return nil
 }
 
@@ -262,5 +279,6 @@ func (c *Consumer) Shutdown() error {
 	// delivery chans.  We need every delivery to be processed, here make
 	// sure to wait for all consumers goroutines to finish before exiting our
 	// process.
+	c.closeSignal <- 1
 	return <-c.done
 }

@@ -10,9 +10,10 @@ import (
 	"strconv"
 	"time"
 )
+
 // HitokotoPollDailyReportEvent 每日审核员报告事件
 func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
-	return &rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification",
 			Type:    "direct",
@@ -97,6 +98,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 	}
 }
+
 type hitokotoPollDailyReportMessage struct {
 	CreatedAt         string                                          `json:"created_at"`         // 报告生成时间
 	To                string                                          `json:"to"`                 // 接收人地址

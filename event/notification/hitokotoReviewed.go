@@ -12,8 +12,8 @@ import (
 )
 
 // HitokotoReviewedEvent 处理一言成功添加事件
-func HitokotoReviewedEvent ()  *rabbitmq.ConsumerRegisterOptions {
-	return &rabbitmq.ConsumerRegisterOptions {
+func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
+	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification",
 			Type:    "direct",
@@ -92,6 +92,6 @@ type hitokotoReviewedMessage struct {
 	hitokotoAppendedMessage
 	OperatedAt   string `json:"operated_at"`   // 操作时间
 	ReviewerName string `json:"reviewer_name"` // 审核员名称
-	ReviewerUid  int `json:"reviewer_uid"`  // 审核员用户标识
+	ReviewerUid  int    `json:"reviewer_uid"`  // 审核员用户标识
 	Status       int    `json:"status"`        // 审核结果： 200 为通过，201 为驳回
 }

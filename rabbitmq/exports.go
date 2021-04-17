@@ -6,9 +6,9 @@ import (
 )
 
 type RabbitMQInstant struct {
-	RabbitMQ  *RabbitMQ
-	Consumers ConsumerList
-	Producers ProducerList
+	RabbitMQ         *RabbitMQ
+	Consumers        ConsumerList
+	Producers        ProducerList
 	consumersOptions []ConsumerRegisterOptions // 用于批量注册
 }
 
@@ -70,17 +70,17 @@ func (r *RabbitMQInstant) RegisterConsumer(options ConsumerRegisterOptions) erro
 	})
 	return nil
 }
+
 // ProducerRegisterOptions is the options of register producer
 type ProducerRegisterOptions struct {
 	Exchange          Exchange
 	Queue             Queue
 	PublishingOptions PublishingOptions
-	BindingOptions BindingOptions
 }
 
 // RegisterProducer register a producer
 func (r *RabbitMQInstant) RegisterProducer(options ProducerRegisterOptions) (*Producer, error) {
-	producer, err := r.RabbitMQ.NewProducer(options.Exchange, options.Queue, options.BindingOptions, options.PublishingOptions)
+	producer, err := r.RabbitMQ.NewProducer(options.Exchange, options.Queue, options.PublishingOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +123,7 @@ func (r *RabbitMQInstant) registerChannelRecover() {
 
 // ConsumerList defines a ConsumerUnit List
 type ConsumerList []ConsumerUnit
+
 // ConsumerUnit defines a Consumer unit
 type ConsumerUnit struct {
 	UUID     string
@@ -133,14 +134,17 @@ type ConsumerUnit struct {
 func (p *ConsumerList) Add(unit ConsumerUnit) {
 	*p = append(*p, unit)
 }
+
 // UpdateInstant update rabbitmq connection(also called instant)
 func (p *ConsumerList) UpdateInstant(rmq *RabbitMQ) {
 	for _, unit := range *p {
 		unit.Consumer.RabbitMQ = rmq
 	}
 }
+
 // ProducerList defines a ProducerUnit List
 type ProducerList []ProducerUnit
+
 // ProducerUnit defines a Producer unit
 type ProducerUnit struct {
 	UUID     string
@@ -151,6 +155,7 @@ type ProducerUnit struct {
 func (p *ProducerList) Add(unit ProducerUnit) {
 	*p = append(*p, unit)
 }
+
 // UpdateInstant update rabbitmq connection(also called instant)
 func (p *ProducerList) UpdateInstant(rmq *RabbitMQ) {
 	for _, unit := range *p {
