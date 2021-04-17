@@ -94,6 +94,7 @@ prime/
 
 # custom
 config.yaml
+config.yml
 bin/
 .gopath
 
