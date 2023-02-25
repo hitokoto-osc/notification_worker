@@ -11,7 +11,6 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
-	golang.org/x/sys v0.0.0-20210415045647-66c3f260301c // indirect
-	gopkg.in/errgo.v2 v2.1.0
+	golang.org/x/sys v0.1.0 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 )
