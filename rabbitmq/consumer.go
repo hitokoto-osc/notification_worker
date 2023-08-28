@@ -217,7 +217,7 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 					u4, _ := uuid.NewRandom()
 					hctx := hcontext.NewFromContext(ctx)
 					logging.NewContext(hctx, zap.String("traceID", u4.String()))
-					logging.NewContext(ctx, zap.String("consumerTag", co.Tag))
+					logging.NewContext(hctx, zap.String("consumerTag", co.Tag))
 					logger := logging.WithContext(hctx).Sugar()
 					defer logger.Sync()
 					go func() {
