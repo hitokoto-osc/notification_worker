@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
-	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"strconv"
-	"time"
-
+	"github.com/golang-module/carbon/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
+	"strconv"
 )
 
 // HitokotoReviewedEvent 处理一言成功添加事件
@@ -56,9 +55,9 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			var reviewResult = &struct {
 				StatusText string
 				Desc       string
-				OperatedAt time.Time
+				OperatedAt carbon.Carbon
 			}{}
-			reviewResult.OperatedAt, err = time.ParseInLocation("2006-01-02T15:04:05.999Z", message.OperatedAt, time.UTC)
+			reviewResult.OperatedAt = carbon.Parse(message.OperatedAt)
 			if err != nil {
 				return err
 			}
@@ -77,15 +76,15 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 萌创团队 - 一言项目组<br />
 %s</p>`,
 				message.Creator,
-				time.Unix(ts, 0).Format("2006-01-02 15:04:05"),
+				carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
 				message.Hitokoto, message.FromWho,
 				message.From,
 				reviewResult.StatusText,
 				message.ReviewerName,
 				message.ReviewerUid,
-				reviewResult.OperatedAt.In(time.Local).Format("2006-01-02 15:04:05"),
+				reviewResult.OperatedAt.Format("Y-m-d H:i:s"),
 				reviewResult.Desc,
-				time.Now().Format("2006年1月2日"),
+				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
 			err = directmail.SingleSendMail(ctx, message.To, "喵！您的句子审核结果出来了！", html, true)
 			return err

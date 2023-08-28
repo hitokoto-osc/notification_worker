@@ -2,12 +2,10 @@ package notification
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
@@ -36,17 +34,19 @@ func HitokotoFailedMessageCanEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
-			logger.Debug("[RabbitMQ.Producer.FailedMessageCan] 收到死信：", zap.ByteString("body", delivery.Body))
-			html := fmt.Sprintf(`<h1>您好，a632079。</h1>
-<p>系统遇到了一封无法处理的死信，以下为详细信息：</p>
-<pre>
-	<code>
-%v
-	</code>
-</pre>
-`, string(delivery.Body))
-			err := directmail.SingleSendMail(ctx, "a632079@qq.com", "[一言告警] 出现不可恢复的死信！", html, true)
-			return err
+			logger.Error("[RabbitMQ.Producer.FailedMessageCan] 收到死信：", zap.ByteString("body", delivery.Body))
+			// TODO: 修复死信循环的问题
+			//			html := fmt.Sprintf(`<h1>您好，a632079。</h1>
+			//<p>系统遇到了一封无法处理的死信，以下为详细信息：</p>
+			//<pre>
+			//	<code>
+			//%v
+			//	</code>
+			//</pre>
+			//`, string(delivery.Body))
+
+			// err := directmail.SingleSendMail(ctx, "a632079@qq.com", "[一言告警] 出现不可恢复的死信！", html, true)
+			return nil
 		},
 	}
 }

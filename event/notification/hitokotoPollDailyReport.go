@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"strconv"
-	"time"
-
+	"github.com/golang-module/carbon/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
+	"strconv"
 )
 
 // HitokotoPollDailyReportEvent 每日审核员报告事件
@@ -46,7 +45,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 				return err
 			}
 			// 解析 ISO 时间
-			CreatedAt, err := time.ParseInLocation("2006-01-02T15:04:05.999Z", message.CreatedAt, time.UTC)
+			CreatedAt := carbon.Parse(message.CreatedAt)
 			if err != nil {
 				return err
 			}
@@ -80,7 +79,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 <p>萌创团队 - 一言项目组<br />
 %s</p>`,
 				message.UserName,
-				CreatedAt.In(time.Local).Format("2006-01-02 15:04:05"),
+				CreatedAt.Format("Y-m-d H:i:s"),
 				strconv.Itoa(message.SystemInformation.Total),
 				strconv.Itoa(message.SystemInformation.ProcessTotal),
 				strconv.Itoa(message.SystemInformation.ProcessAccept),
@@ -95,7 +94,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 				strconv.Itoa(message.UserInformation.Polled.Reject),
 				strconv.Itoa(message.UserInformation.Polled.NeedEdited),
 				strconv.Itoa(message.UserInformation.WaitForPolling),
-				time.Now().Format("2006年1月2日"),
+				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
 			err = directmail.SingleSendMail(ctx, message.To, "喵！今日份的投票报告来了！", html, true)
 			return err

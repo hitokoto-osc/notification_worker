@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"strconv"
-	"time"
-
+	"github.com/golang-module/carbon/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
+	"strconv"
 )
 
 // HitokotoPollFinishedEvent 一言投票完成事件
@@ -46,10 +45,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 				return err
 			}
 			// 解析 ISO 时间
-			updatedAt, err := time.ParseInLocation("2006-01-02T15:04:05.999Z", message.UpdatedAt, time.UTC)
-			if err != nil {
-				return err
-			}
+			updatedAt := carbon.Parse(message.UpdatedAt)
 
 			// 处理 JSON 数据
 			var result = struct {
@@ -93,7 +89,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 %s</p>`,
 				message.UserName,
 				message.Id,
-				updatedAt.In(time.Local).Format("2006-01-02 15:04:05"),
+				updatedAt.Format("Y-m-d H:i:s"),
 				message.Hitokoto,
 				message.From,
 				message.FromWho,
@@ -101,7 +97,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 				result.StatusText,
 				result.MethodText,
 				strconv.Itoa(message.Point), // 直接转换成字符串之后再插入
-				time.Now().Format("2006年1月2日"),
+				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
 			err = directmail.SingleSendMail(ctx, message.To, "喵！投票结果出炉了！", html, true)
 			return err

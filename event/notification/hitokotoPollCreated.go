@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"time"
-
+	"github.com/golang-module/carbon/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
@@ -45,7 +44,7 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 				return err
 			}
 			// 解析 ISO 时间
-			createdAt, err := time.ParseInLocation("2006-01-02T15:04:05.999Z", message.CreatedAt, time.UTC)
+			createdAt := carbon.Parse(message.CreatedAt)
 			if err != nil {
 				return err
 			}
@@ -64,13 +63,13 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 萌创团队 - 一言项目组<br />
 %s</p>`,
 				message.UserName,
-				createdAt.In(time.Local).Format("2006-01-02 15:04:05"),
+				createdAt.Format("Y-m-d H:i:s"),
 				message.Id,
 				message.Hitokoto,
 				message.From,
 				message.FromWho,
 				message.Creator,
-				time.Now().Format("2006年1月2日"),
+				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
 			err = directmail.SingleSendMail(ctx, message.To, "喵！新的野生投票菌出现了！", html, true)
 			return err

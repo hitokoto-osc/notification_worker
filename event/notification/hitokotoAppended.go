@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"strconv"
-	"time"
-
+	"github.com/golang-module/carbon/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
+	"strconv"
 )
 
 // HitokotoAppendedEvent 返回处理一言成功添加事件的配置
@@ -58,10 +57,10 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 萌创团队 - 一言项目组<br />
 %s</p>`,
 				message.Creator,
-				time.Unix(ts, 0).Format("2006-01-02 15:04:05"),
+				carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
 				message.Hitokoto, message.FromWho,
 				message.From,
-				time.Now().Format("2006年1月2日"),
+				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
 			err = directmail.SingleSendMail(ctx, message.To, "喵！已经成功收到您提交的句子了！", html, true)
 			return err
