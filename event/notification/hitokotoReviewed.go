@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -35,7 +36,7 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			Tag:        "HitokotoReviewedNotificationWorker",
 			AckByError: true,
 		},
-		CallFunc: func(delivery amqp.Delivery) error {
+		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			log.Debugf("[hitokoto_reviewed]收到消息: %v  \n", string(delivery.Body))
 			message := hitokotoReviewedMessage{}
 			err := json.Unmarshal(delivery.Body, &message)

@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -34,7 +35,7 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 			Tag:        "HitokotoPollCreatedNotificationWorker",
 			AckByError: true,
 		},
-		CallFunc: func(delivery amqp.Delivery) error {
+		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			log.Debugf("[hitokoto_poll_created]收到消息: %v  \n", string(delivery.Body))
 			message := hitokotoPollCreatedMessage{}
 			err := json.Unmarshal(delivery.Body, &message)

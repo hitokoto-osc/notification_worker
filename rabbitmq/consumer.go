@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"context"
 	"github.com/cockroachdb/errors"
 	"time"
 
@@ -17,7 +18,7 @@ type Consumer struct {
 	// All deliveries from server will send to this channel
 	deliveries <-chan amqp.Delivery
 	// This handler will be called when a
-	handler func(amqp.Delivery) error
+	handler func(ctx context.Context, delivery amqp.Delivery) error
 	// A notifiyng channel for publishings
 	// will be used for sync. between close channel and consume handler
 	done chan error
@@ -177,7 +178,7 @@ func (c *Consumer) Register() error {
 
 // Consume accepts a handler function for every message streamed from RabbitMq
 // will be called within this handler func
-func (c *Consumer) Consume(handler func(delivery amqp.Delivery) error) error {
+func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Delivery) error) error {
 	co := c.session.ConsumerOptions
 	q := c.session.Queue
 	// Exchange bound to Queue, starting Consume
@@ -207,19 +208,31 @@ func (c *Consumer) Consume(handler func(delivery amqp.Delivery) error) error {
 		for {
 			select {
 			case delivery := <-c.deliveries:
-				if e := handler(delivery); e != nil {
-					c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
-					if !co.AutoAck && co.AckByError {
-						c.RabbitMQ.log.Debug("[RabbitMQ.Consumer] exec NACK")
-						if e := delivery.Nack(false, false); e != nil {
-							c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+				go func(delivery amqp.Delivery) {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+					defer cancel()
+					go func() {
+						if e := handler(ctx, delivery); e != nil {
+							c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
+							if !co.AutoAck && co.AckByError {
+								c.RabbitMQ.log.Debug("[RabbitMQ.Consumer] exec NACK")
+								if e := delivery.Nack(false, false); e != nil {
+									c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+								}
+							}
+						} else if !co.AutoAck && co.AckByError {
+							if e := delivery.Ack(false); e != nil {
+								c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+							}
 						}
+					}()
+
+					select {
+					case <-ctx.Done():
+						c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Timeout exceeded. Tag: %v, occurred error: %v, received data: %v", co.Tag, ctx.Err().Error(), string(delivery.Body))
+						return
 					}
-				} else if !co.AutoAck && co.AckByError {
-					if e := delivery.Ack(false); e != nil {
-						c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
-					}
-				}
+				}(delivery)
 			case <-c.closeSignal:
 				break consumeLoop
 			}
@@ -239,7 +252,7 @@ func (c *Consumer) QOS(messageCount int) error {
 
 // Get ConsumeMessage accepts a handler function and only consumes one message
 // stream from RabbitMq
-func (c *Consumer) Get(handler func(delivery amqp.Delivery) error) error {
+func (c *Consumer) Get(ctx context.Context, handler func(ctx context.Context, delivery amqp.Delivery) error) error {
 	co := c.session.ConsumerOptions
 	q := c.session.Queue
 	message, ok, err := c.channel.Get(q.Name, co.AutoAck)
@@ -248,10 +261,9 @@ func (c *Consumer) Get(handler func(delivery amqp.Delivery) error) error {
 	}
 
 	c.handler = handler
-
 	if ok {
 		c.RabbitMQ.log.Debug("Message received")
-		err = handler(message)
+		err = handler(ctx, message)
 		if err != nil {
 			return err
 		}

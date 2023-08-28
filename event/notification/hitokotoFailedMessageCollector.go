@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
@@ -98,7 +99,7 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 			Tag:        "HitokotoFailedMessageCollectWorker",
 			AckByError: true,
 		},
-		CallFunc: func(delivery amqp.Delivery) (err error) {
+		CallFunc: func(ctx context.Context, delivery amqp.Delivery) (err error) {
 			defer func() {
 				e := recover()
 				if e != nil {
@@ -133,10 +134,16 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 			if err != nil {
 				return err
 			}
+			defer func(producer *rabbitmq.Producer) {
+				e := producer.Shutdown()
+				if e != nil {
+					log.Errorf("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed: %v", e)
+				}
+			}(producer)
 			if count := checkXDeathCount(XDeath.([]interface{})); count <= 5 {
 				log.Debugf("[RabbitMQ.Producer.FailedMessageCollector] 当前错误计数：%v，尝试重新投递... ", count)
 				time.Sleep(1 * time.Second) // 暂停 1 s
-				if err = producer.Publish(amqp.Publishing{
+				if err = producer.Publish(ctx, amqp.Publishing{
 					DeliveryMode: amqp.Persistent,
 					Headers:      delivery.Headers,
 					Body:         delivery.Body,
@@ -151,12 +158,18 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 				if err != nil {
 					return err
 				}
+				defer func() {
+					e := producer.Shutdown()
+					if e != nil {
+						log.Errorf("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed: %v", e)
+					}
+				}()
 				var body []byte
 				body, err = wrapperHeader(delivery.Headers, delivery.Body)
 				if err != nil {
 					return err
 				}
-				if err = producer.Publish(amqp.Publishing{
+				if err = producer.Publish(ctx, amqp.Publishing{
 					DeliveryMode: amqp.Persistent,
 					Headers:      delivery.Headers,
 					Body:         body,

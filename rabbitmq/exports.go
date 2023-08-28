@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"context"
 	"github.com/cockroachdb/errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -35,7 +36,7 @@ type ConsumerRegisterOptions struct {
 	Queue           Queue
 	BindingOptions  BindingOptions
 	ConsumerOptions ConsumerOptions
-	CallFunc        func(delivery amqp.Delivery) error
+	CallFunc        func(ctx context.Context, delivery amqp.Delivery) error
 }
 
 // RegisterConsumerConfig register a consumer config to queue

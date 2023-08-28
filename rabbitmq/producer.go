@@ -1,10 +1,9 @@
 package rabbitmq
 
 import (
-	"github.com/google/uuid"
-	"time"
-
+	"context"
 	"github.com/cockroachdb/errors"
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -74,36 +73,12 @@ func (r *RabbitMQ) NewProducer(e Exchange, q Queue, po PublishingOptions) (*Prod
 // HandleError register the recover loop against channel closed
 func (p *Producer) HandleError() {
 	go func() {
-	KeepAliveLoop:
+	loop:
 		for {
 			select {
 			case e := <-p.channel.NotifyClose(make(chan *amqp.Error)):
 				p.RabbitMQ.log.Errorf("[RabbitMQ] Channel：%+v \n遇到问题已关闭，错误原因：%v", p.session, e.Error())
-				for i := 0; i < 5; i++ {
-					p.RabbitMQ.log.Infof("[RabbitMQ] 将在 8 s 后尝试重新注册 Channel: %+v", p.session)
-					time.Sleep(8 * time.Second)
-					p.RabbitMQ.log.Debugf("[RabbitMQ] 开始注册 Channel：%+v", p.session)
-					err := func() error {
-						var ch *amqp.Channel
-						var err error
-						mutex.Lock()
-						if ch, err = p.RabbitMQ.Conn().Channel(); err != nil {
-							mutex.Unlock()
-							return err
-						}
-						mutex.Unlock()
-						p.channel = ch
-						return nil
-					}()
-					if err == nil {
-						break KeepAliveLoop
-					} else {
-						p.RabbitMQ.log.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
-						if i == 4 {
-							p.RabbitMQ.log.Fatal("[RabbitMQ] 无法恢复 Channel，进程退出。")
-						}
-					}
-				}
+				break loop
 			}
 		}
 	}()
@@ -120,11 +95,12 @@ func (p *Producer) GetRoutingKey() string {
 }
 
 // Publish sends a Publishing from the client to an exchange on the server.
-func (p *Producer) Publish(publishing amqp.Publishing) error {
+func (p *Producer) Publish(ctx context.Context, publishing amqp.Publishing) error {
 	e := p.session.Exchange
 	po := p.session.PublishingOptions
 	routingKey := p.GetRoutingKey()
-	err := p.channel.Publish(
+	err := p.channel.PublishWithContext(
+		ctx,
 		e.Name,       // publish to an exchange(it can be default exchange)
 		routingKey,   // routing to 0 or more queues
 		po.Mandatory, // mandatory, if no queue than err
