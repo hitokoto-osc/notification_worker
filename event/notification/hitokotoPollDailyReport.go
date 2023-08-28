@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	log "github.com/sirupsen/logrus"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
@@ -37,7 +38,8 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 			AckByError: true,
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
-			log.Printf("[hitokoto_poll_daily_report]收到消息: %v  \n", string(delivery.Body))
+			logger := logging.WithContext(ctx)
+			logger.Debug("[hitokoto_poll_daily_report]收到消息: ", zap.ByteString("body", delivery.Body))
 			message := hitokotoPollDailyReportMessage{}
 			err := json.Unmarshal(delivery.Body, &message)
 			if err != nil {
@@ -95,7 +97,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 				strconv.Itoa(message.UserInformation.WaitForPolling),
 				time.Now().Format("2006年1月2日"),
 			)
-			err = directmail.SingleSendMail(message.To, "喵！今日份的投票报告来了！", html, true)
+			err = directmail.SingleSendMail(ctx, message.To, "喵！今日份的投票报告来了！", html, true)
 			return err
 		},
 	}

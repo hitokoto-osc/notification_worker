@@ -3,6 +3,9 @@ package rabbitmq
 import (
 	"context"
 	"github.com/cockroachdb/errors"
+	"go.uber.org/zap"
+	hcontext "source.hitokoto.cn/hitokoto/notification-worker/context"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"time"
 
 	"github.com/google/uuid"
@@ -211,25 +214,30 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 				go func(delivery amqp.Delivery) {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 					defer cancel()
+					u4, _ := uuid.NewRandom()
+					hctx := hcontext.NewFromContext(ctx)
+					logging.NewContext(hctx, zap.String("traceID", u4.String()))
+					logging.NewContext(ctx, zap.String("consumerTag", co.Tag))
+					logger := logging.WithContext(hctx).Sugar()
 					go func() {
-						if e := handler(ctx, delivery); e != nil {
-							c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
+						if e := handler(hctx, delivery); e != nil {
+							logger.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
 							if !co.AutoAck && co.AckByError {
-								c.RabbitMQ.log.Debug("[RabbitMQ.Consumer] exec NACK")
-								if e := delivery.Nack(false, false); e != nil {
-									c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+								logger.Debug("[RabbitMQ.Consumer] exec NACK")
+								if e = delivery.Nack(false, false); e != nil {
+									logger.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
 								}
 							}
 						} else if !co.AutoAck && co.AckByError {
-							if e := delivery.Ack(false); e != nil {
-								c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+							if e = delivery.Ack(false); e != nil {
+								logger.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
 							}
 						}
 					}()
 
 					select {
 					case <-ctx.Done():
-						c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Timeout exceeded. Tag: %v, occurred error: %v, received data: %v", co.Tag, ctx.Err().Error(), string(delivery.Body))
+						logger.Errorf("[RabbitMQ.Consumer] Timeout exceeded. Tag: %v, occurred error: %v, received data: %v", co.Tag, ctx.Err().Error(), string(delivery.Body))
 						return
 					}
 				}(delivery)

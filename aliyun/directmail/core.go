@@ -1,24 +1,28 @@
 package directmail
 
 import (
+	"context"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dm"
 	"github.com/cockroachdb/errors"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	config "source.hitokoto.cn/hitokoto/notification-worker/config"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 )
 
 var client *dm.Client
 
 func InitAliyunDirectMail() {
+	logger := logging.GetLogger().Sugar()
 	conf := &config.Aliyun{}
 	var err error
 	client, err = dm.NewClientWithAccessKey(conf.RegionId(), conf.AccessKeyId(), conf.AccessKeySecret())
 	if err != nil {
-		log.Fatalf("无法初始化阿里云邮件推送服务，错误信息： %s \n", err)
+		logger.Fatalf("无法初始化阿里云邮件推送服务，错误信息： %s \n", err)
 	}
 }
 
-func SingleSendMail(toAddress string, subject string, body string, isHTML bool) error {
+func SingleSendMail(ctx context.Context, toAddress string, subject string, body string, isHTML bool) error {
+	logger := logging.WithContext(ctx)
 	if client == nil {
 		InitAliyunDirectMail()
 	}
@@ -40,7 +44,11 @@ func SingleSendMail(toAddress string, subject string, body string, isHTML bool) 
 		return err
 	}
 	if response.GetHttpStatus() != 200 {
-		log.Error(response)
+		logger.Error("阿里云邮件推送服务返回状态码不为 200",
+			zap.Int("status", response.GetHttpStatus()),
+			zap.String("content", response.GetHttpContentString()),
+		)
+
 		return errors.New("请求状态码不为 200")
 	}
 	return nil

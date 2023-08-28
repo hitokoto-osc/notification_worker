@@ -1,10 +1,6 @@
 package rabbitmq
 
 type Logger interface {
-	// Print all levels + Prin
-	Print(v ...interface{})
-	Printf(format string, v ...interface{})
-	Println(v ...interface{})
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
 	Debugln(v ...interface{})

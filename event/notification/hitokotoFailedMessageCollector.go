@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
+	"go.uber.org/zap"
 	"runtime"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	log "github.com/sirupsen/logrus"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
@@ -52,17 +53,18 @@ func getProducer(instant *rabbitmq.Instance, exchangeName, queueName, routingKey
 	return producer, nil
 }
 
-func checkXDeathCount(xDeath []interface{}) int64 {
+func checkXDeathCount(ctx context.Context, xDeath []interface{}) int64 {
+	logger := logging.WithContext(ctx)
 	count := int64(0)
 	for _, v := range xDeath {
-		v := v.(amqp.Table)
-		c, o := v["count"]
-		log.Debug(c)
-		log.Debug(v)
+		table := v.(amqp.Table)
+		c, o := table["count"]
+		logger.Debug("c, v", zap.Any("c", c), zap.Any("v", v))
 		if !o {
 			// TODO: 未来解决，理论上不可能
-			log.Warn("[event.hitokotoFailedMessageCollector] checkXDeathCount: unexpected behavior")
-			log.Warn(xDeath)
+			logger.Warn("[event.hitokotoFailedMessageCollector] checkXDeathCount: unexpected behavior",
+				zap.Any("xDeath", xDeath),
+			)
 		}
 		count += c.(int64)
 	}
@@ -100,23 +102,28 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 			AckByError: true,
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) (err error) {
+			logger := logging.WithContext(ctx)
+			defer logger.Sync()
 			defer func() {
 				e := recover()
 				if e != nil {
-					switch e := e.(type) {
+					switch v := e.(type) {
 					case string:
-						err = errors.New(e)
+						err = errors.New(v)
 					case error:
-						err = e
+						err = v
 					case runtime.Error:
-						err = e
+						err = v
 					default:
-						log.Error(e)
+						logger.Error("[RabbitMQ.Producer.FailedMessageCollector] unknown error: ", zap.Any("error", e))
 						err = errors.New("unknown error")
 					}
 				}
 			}()
-			log.Debugf("[RabbitMQ.Producer.FailedMessageCollector] Headers: %+v", delivery.Headers)
+			logger.Debug("[RabbitMQ.Producer.FailedMessageCollector] received a new message: ",
+				zap.String("headers", fmt.Sprintf("%+v", delivery.Headers)),
+				zap.ByteString("body", delivery.Body),
+			)
 			XDeath, ok := delivery.Headers["x-death"]
 			if !ok {
 				return errors.New("x-death is missing")
@@ -137,11 +144,11 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 			defer func(producer *rabbitmq.Producer) {
 				e := producer.Shutdown()
 				if e != nil {
-					log.Errorf("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed: %v", e)
+					logger.Error("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed:", zap.Error(e))
 				}
 			}(producer)
-			if count := checkXDeathCount(XDeath.([]interface{})); count <= 5 {
-				log.Debugf("[RabbitMQ.Producer.FailedMessageCollector] 当前错误计数：%v，尝试重新投递... ", count)
+			if count := checkXDeathCount(ctx, XDeath.([]interface{})); count <= 5 {
+				logger.Sugar().Debugf("[RabbitMQ.Producer.FailedMessageCollector] 当前错误计数：%v，尝试重新投递... ", count)
 				time.Sleep(1 * time.Second) // 暂停 1 s
 				if err = producer.Publish(ctx, amqp.Publishing{
 					DeliveryMode: amqp.Persistent,
@@ -150,9 +157,9 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 				}); err != nil {
 					return errors.WithMessagef(err, "[RabbitMQ.Producer.FailedMessageCollector] publish original queue (%v) failed.", fmt.Sprintf("%v.%v", OriginalExchangeName, OriginalQueueName))
 				}
-				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重新投递成功")
+				logger.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重新投递成功")
 			} else {
-				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重试次数过多，投递死信桶。")
+				logger.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重试次数过多，投递死信桶。")
 				// 丢到死信桶队列（无法恢复）
 				producer, err = getProducer(instant, "notification_failed", "notification_failed_can", "notification_failed.notification_failed_can")
 				if err != nil {
@@ -161,7 +168,7 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 				defer func() {
 					e := producer.Shutdown()
 					if e != nil {
-						log.Errorf("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed: %v", e)
+						logger.Error("[RabbitMQ.Producer.FailedMessageCollector] shutdown producer failed: ", zap.Error(e))
 					}
 				}()
 				var body []byte
@@ -176,7 +183,7 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.Con
 				}); err != nil {
 					return errors.WithMessage(err, "[RabbitMQ.Producer.FailedMessageCollector] publish can queue failed.")
 				}
-				log.Debug("[RabbitMQ.Producer.FailedMessageCollector] 投递成功.")
+				logger.Debug("[RabbitMQ.Producer.FailedMessageCollector] 投递成功.")
 			}
 			return
 		},

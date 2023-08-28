@@ -2,51 +2,54 @@ package event
 
 import (
 	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"source.hitokoto.cn/hitokoto/notification-worker/config"
 	"source.hitokoto.cn/hitokoto/notification-worker/event/notification"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func InitRabbitMQEvent() {
-	log.Info("注册消息队列接收器...")
+	logger := logging.GetLogger()
+	logger.Info("注册消息队列接收器...")
 	c := &config.RabbitMQ{}
-	log.Info((&rabbitmq.Config{
+	logger.Info((&rabbitmq.Config{
 		Host:     c.Host(),
 		Port:     c.Port(),
 		Username: c.User(),
 		Password: c.Pass(),
 		Vhost:    c.VHost(),
 	}).URI())
-	instant := rabbitmq.New(&rabbitmq.Config{
+	instance := rabbitmq.New(&rabbitmq.Config{
 		Host:     c.Host(),
 		Port:     c.Port(),
 		Username: c.User(),
 		Password: c.Pass(),
 		Vhost:    c.VHost(),
-	}, log.StandardLogger())
-	if err := instant.Init(); err != nil {
-		log.Fatal(err)
+	}, logger.Sugar())
+	if err := instance.Init(); err != nil {
+		logger.Fatal("无法启动实例", zap.Error(err))
 	}
 
 	// 注册接收器
-	log.Info("开始注册消息接收器...")
-	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCollectEvent(instant))
-	instant.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
-	instant.RegisterConsumerConfig(*notification.HitokotoAppendedEvent())
-	instant.RegisterConsumerConfig(*notification.HitokotoReviewedEvent())
-	instant.RegisterConsumerConfig(*notification.HitokotoPollCreatedEvent())
-	instant.RegisterConsumerConfig(*notification.HitokotoPollFinishedEvent())
-	instant.RegisterConsumerConfig(*notification.HitokotoPollDailyReportEvent())
-	handleErr(instant.ConsumerSubscribe())
-	log.Info("已注册消息接收器，开始处理消息。")
+	logger.Info("开始注册消息接收器...")
+	instance.RegisterConsumerConfig(*notification.HitokotoFailedMessageCollectEvent(instance))
+	instance.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
+	instance.RegisterConsumerConfig(*notification.HitokotoAppendedEvent())
+	instance.RegisterConsumerConfig(*notification.HitokotoReviewedEvent())
+	instance.RegisterConsumerConfig(*notification.HitokotoPollCreatedEvent())
+	instance.RegisterConsumerConfig(*notification.HitokotoPollFinishedEvent())
+	instance.RegisterConsumerConfig(*notification.HitokotoPollDailyReportEvent())
+	handleErr(instance.ConsumerSubscribe())
+	logger.Info("已注册消息接收器，开始处理消息。")
 	select {}
 }
 
 func handleErr(e error) {
+	logger := logging.GetLogger()
 	if e != nil {
-		log.Fatal(e)
+		logger.Fatal("无法注册消费者", zap.Error(e))
 	}
 }

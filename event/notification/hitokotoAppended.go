@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
+	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	log "github.com/sirupsen/logrus"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
@@ -37,7 +38,8 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 			AckByError: true,
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
-			log.Debugf("[hitokoto_appended] 收到消息: %v  \n", string(delivery.Body))
+			logger := logging.WithContext(ctx)
+			logger.Debug("[hitokoto_appended] 收到消息: %v  \n", zap.ByteString("body", delivery.Body))
 			message := hitokotoAppendedMessage{}
 			err := json.Unmarshal(delivery.Body, &message)
 			if err != nil {
@@ -61,7 +63,7 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 				message.From,
 				time.Now().Format("2006年1月2日"),
 			)
-			err = directmail.SingleSendMail(message.To, "喵！已经成功收到您提交的句子了！", html, true)
+			err = directmail.SingleSendMail(ctx, message.To, "喵！已经成功收到您提交的句子了！", html, true)
 			return err
 		},
 	}
