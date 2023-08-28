@@ -34,6 +34,7 @@ func HitokotoFailedMessageCanEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
+			defer logger.Sync()
 			logger.Error("[RabbitMQ.Producer.FailedMessageCan] 收到死信：", zap.ByteString("body", delivery.Body))
 			// TODO: 修复死信循环的问题
 			//			html := fmt.Sprintf(`<h1>您好，a632079。</h1>

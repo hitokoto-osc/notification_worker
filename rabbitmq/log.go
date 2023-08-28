@@ -1,6 +1,7 @@
 package rabbitmq
 
 type Logger interface {
+	Sync() error
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
 	Debugln(v ...interface{})

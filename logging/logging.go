@@ -13,11 +13,7 @@ const loggerKey = "logger"
 var logger *zap.Logger
 
 func InitLogging(debug bool) {
-	defer func() {
-		if e := logger.Sync(); e != nil {
-			panic(errors.WithMessage(e, "logger sync failed"))
-		}
-	}()
+	defer logger.Sync()
 	var (
 		c   zap.Config
 		err error

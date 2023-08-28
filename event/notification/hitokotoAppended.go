@@ -38,6 +38,7 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
+			defer logger.Sync()
 			logger.Debug("[hitokoto_appended] 收到消息: %v  \n", zap.ByteString("body", delivery.Body))
 			message := hitokotoAppendedMessage{}
 			err := json.Unmarshal(delivery.Body, &message)

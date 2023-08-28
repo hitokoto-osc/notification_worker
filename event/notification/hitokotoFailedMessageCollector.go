@@ -55,6 +55,7 @@ func getProducer(instant *rabbitmq.Instance, exchangeName, queueName, routingKey
 
 func checkXDeathCount(ctx context.Context, xDeath []interface{}) int64 {
 	logger := logging.WithContext(ctx)
+	defer logger.Sync()
 	count := int64(0)
 	for _, v := range xDeath {
 		table := v.(amqp.Table)

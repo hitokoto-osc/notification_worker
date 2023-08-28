@@ -38,6 +38,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
+			defer logger.Sync()
 			logger.Debug("[hitokoto_poll_finished]收到消息:", zap.ByteString("body", delivery.Body))
 			message := hitokotoPollFinishedMessage{}
 			err := json.Unmarshal(delivery.Body, &message)

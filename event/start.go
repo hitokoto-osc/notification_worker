@@ -13,6 +13,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func InitRabbitMQEvent() {
 	logger := logging.GetLogger()
+	defer logger.Sync()
 	logger.Info("注册消息队列接收器...")
 	c := &config.RabbitMQ{}
 	logger.Info((&rabbitmq.Config{

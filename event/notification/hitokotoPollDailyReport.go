@@ -38,6 +38,7 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 		},
 		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
+			defer logger.Sync()
 			logger.Debug("[hitokoto_poll_daily_report]收到消息: ", zap.ByteString("body", delivery.Body))
 			message := hitokotoPollDailyReportMessage{}
 			err := json.Unmarshal(delivery.Body, &message)

@@ -23,6 +23,7 @@ func InitAliyunDirectMail() {
 
 func SingleSendMail(ctx context.Context, toAddress string, subject string, body string, isHTML bool) error {
 	logger := logging.WithContext(ctx)
+	defer logger.Sync()
 	if client == nil {
 		InitAliyunDirectMail()
 	}

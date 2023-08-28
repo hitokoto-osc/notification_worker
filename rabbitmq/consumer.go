@@ -219,6 +219,7 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 					logging.NewContext(hctx, zap.String("traceID", u4.String()))
 					logging.NewContext(ctx, zap.String("consumerTag", co.Tag))
 					logger := logging.WithContext(hctx).Sugar()
+					defer logger.Sync()
 					go func() {
 						if e := handler(hctx, delivery); e != nil {
 							logger.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
@@ -261,6 +262,7 @@ func (c *Consumer) QOS(messageCount int) error {
 // Get ConsumeMessage accepts a handler function and only consumes one message
 // stream from RabbitMq
 func (c *Consumer) Get(ctx context.Context, handler func(ctx context.Context, delivery amqp.Delivery) error) error {
+	defer c.RabbitMQ.log.Sync()
 	co := c.session.ConsumerOptions
 	q := c.session.Queue
 	message, ok, err := c.channel.Get(q.Name, co.AutoAck)
@@ -290,7 +292,7 @@ func (c *Consumer) Shutdown() error {
 	if err := shutdownChannel(c.channel, co.Tag); err != nil {
 		return err
 	}
-
+	defer c.RabbitMQ.log.Sync()
 	defer c.RabbitMQ.log.Info("Consumer shutdown OK")
 	c.RabbitMQ.log.Info("Waiting for Consumer handler to exit")
 

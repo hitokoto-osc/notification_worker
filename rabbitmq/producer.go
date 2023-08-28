@@ -155,5 +155,6 @@ func (p *Producer) Shutdown() error {
 	// Since publishing is asynchronous this can happen
 	// instantly without waiting for a done message.
 	defer p.RabbitMQ.log.Info("Producer shutdown OK")
+	defer p.RabbitMQ.log.Sync()
 	return nil
 }
