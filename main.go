@@ -33,7 +33,7 @@ func init() {
 		fmt.Printf("NotificationWorker ©2023 MoeTeam All Rights Reserved. \n当前版本: %s \n版控哈希: %s\n提交时间：%s\n编译时间：%s\n", Version, BuildTag, CommitTime, BuildTime)
 		os.Exit(0)
 	}
-	logging.InitLogging(DEBUG)
+	logging.InitDefaultLogger(DEBUG)
 	config.Init(c)
 	// 设置生产日记级别
 	if config.Debug() {
@@ -41,11 +41,13 @@ func init() {
 	} else {
 		DEBUG = false
 	}
+	logging.SetLogDebugConfig(DEBUG)
 	// 初始化阿里云 SDK
 	directmail.InitAliyunDirectMail()
 }
 
 func main() {
+
 	logger := logging.GetLogger()
 	logger.Info("服务已初始化，开始核心服务。程序版本：" + Version + "，构建于 " + runtime.Version() + "。 版控哈希：" + BuildTag)
 	go event.InitRabbitMQEvent()
