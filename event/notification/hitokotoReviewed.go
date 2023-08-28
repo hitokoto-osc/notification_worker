@@ -3,12 +3,13 @@ package notification
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/streadway/amqp"
-	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 	"strconv"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+	log "github.com/sirupsen/logrus"
+	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 // HitokotoReviewedEvent 处理一言成功添加事件

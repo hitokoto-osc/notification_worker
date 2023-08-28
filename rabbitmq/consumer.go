@@ -1,10 +1,11 @@
 package rabbitmq
 
 import (
-	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
-	"github.com/streadway/amqp"
+	"github.com/cockroachdb/errors"
 	"time"
+
+	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Consumer struct {
@@ -61,11 +62,14 @@ func (r *RabbitMQ) NewConsumer(e Exchange, q Queue, bo BindingOptions, co Consum
 	channel, err := r.conn.Channel()
 	mutex.Unlock()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "[RabbitMQ.Consumer] get channel error")
 	}
-
+	uuidInstance, err := uuid.NewRandom()
+	if err != nil {
+		return nil, errors.Wrap(err, "[RabbitMQ.Consumer] uuid.NewRandom error")
+	}
 	c := &Consumer{
-		UUID:     uuid.NewV4().String(),
+		UUID:     uuidInstance.String(),
 		RabbitMQ: r,
 		channel:  channel,
 		done:     make(chan error),
@@ -207,7 +211,7 @@ func (c *Consumer) Consume(handler func(delivery amqp.Delivery) error) error {
 					c.RabbitMQ.log.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
 					if !co.AutoAck && co.AckByError {
 						c.RabbitMQ.log.Debug("[RabbitMQ.Consumer] exec NACK")
-						if e := delivery.Nack(false, false) ; e != nil {
+						if e := delivery.Nack(false, false); e != nil {
 							c.RabbitMQ.log.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
 						}
 					}

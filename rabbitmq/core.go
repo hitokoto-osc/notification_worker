@@ -2,13 +2,14 @@ package rabbitmq
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/streadway/amqp"
+	"github.com/cockroachdb/errors"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var mutex sync.Mutex

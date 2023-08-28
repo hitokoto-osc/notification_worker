@@ -1,11 +1,13 @@
 package rabbitmq
 
 import (
-	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
-	"github.com/streadway/amqp"
+	"github.com/google/uuid"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
+
 // Producer is RabbitMQ Producer wrapper
 // TODO: 修复 done 的信道的使用
 type Producer struct {
@@ -49,10 +51,14 @@ func (r *RabbitMQ) NewProducer(e Exchange, q Queue, po PublishingOptions) (*Prod
 	channel, err := r.conn.Channel()
 	mutex.Unlock()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "[RabbitMQ.Producer] Channel creation error")
+	}
+	uuidInstance, err := uuid.NewRandom()
+	if err != nil {
+		return nil, errors.Wrap(err, "[RabbitMQ.Producer] UUID generation error")
 	}
 	producer := &Producer{
-		UUID:     uuid.NewV4().String(),
+		UUID:     uuidInstance.String(),
 		RabbitMQ: r,
 		channel:  channel,
 		session: Session{
@@ -103,7 +109,7 @@ func (p *Producer) HandleError() {
 	}()
 }
 
-func (p *Producer) GetRoutingKey () string {
+func (p *Producer) GetRoutingKey() string {
 	routingKey := p.session.PublishingOptions.RoutingKey
 	// if exchange name is empty, this means we are gonna publish
 	// this mesage to a queue, every queue has a binding to default exchange

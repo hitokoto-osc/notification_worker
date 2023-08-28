@@ -3,18 +3,19 @@ package notification
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/streadway/amqp"
+	"github.com/cockroachdb/errors"
 	"runtime"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+	log "github.com/sirupsen/logrus"
+	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 var ProducerMapping = map[string]string{}
 
 // getProducer get rabbitmq producer
-func getProducer(instant *rabbitmq.RabbitMQInstant, exchangeName, queueName, routingKey string) (*rabbitmq.Producer, error) {
+func getProducer(instant *rabbitmq.Instance, exchangeName, queueName, routingKey string) (*rabbitmq.Producer, error) {
 	uuid, ok := ProducerMapping[routingKey]
 	if ok {
 		producer, ok := instant.GetProducer(uuid)
@@ -75,7 +76,7 @@ func wrapperHeader(header amqp.Table, body []byte) ([]byte, error) {
 }
 
 // HitokotoFailedMessageCollectEvent 处理通知死信
-func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbitmq.ConsumerRegisterOptions {
+func HitokotoFailedMessageCollectEvent(instant *rabbitmq.Instance) *rabbitmq.ConsumerRegisterOptions {
 	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification_failed",
@@ -137,8 +138,8 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbi
 				time.Sleep(1 * time.Second) // 暂停 1 s
 				if err = producer.Publish(amqp.Publishing{
 					DeliveryMode: amqp.Persistent,
-					Headers: delivery.Headers,
-					Body: delivery.Body,
+					Headers:      delivery.Headers,
+					Body:         delivery.Body,
 				}); err != nil {
 					return errors.WithMessagef(err, "[RabbitMQ.Producer.FailedMessageCollector] publish original queue (%v) failed.", fmt.Sprintf("%v.%v", OriginalExchangeName, OriginalQueueName))
 				}
@@ -157,8 +158,8 @@ func HitokotoFailedMessageCollectEvent(instant *rabbitmq.RabbitMQInstant) *rabbi
 				}
 				if err = producer.Publish(amqp.Publishing{
 					DeliveryMode: amqp.Persistent,
-					Headers: delivery.Headers,
-					Body: body,
+					Headers:      delivery.Headers,
+					Body:         body,
 				}); err != nil {
 					return errors.WithMessage(err, "[RabbitMQ.Producer.FailedMessageCollector] publish can queue failed.")
 				}

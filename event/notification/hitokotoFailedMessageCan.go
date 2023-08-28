@@ -2,8 +2,9 @@ package notification
 
 import (
 	"fmt"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
-	"github.com/streadway/amqp"
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )

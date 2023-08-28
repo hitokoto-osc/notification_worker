@@ -1,11 +1,11 @@
 package rabbitmq
 
 import (
-	"github.com/pkg/errors"
-	"github.com/streadway/amqp"
+	"github.com/cockroachdb/errors"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type RabbitMQInstant struct {
+type Instance struct {
 	RabbitMQ         *RabbitMQ
 	Consumers        ConsumerList
 	Producers        ProducerList
@@ -13,17 +13,17 @@ type RabbitMQInstant struct {
 }
 
 // New create rabbitmq wrapper instant
-func New(config *Config, logger Logger) *RabbitMQInstant {
+func New(config *Config, logger Logger) *Instance {
 	rmq := NewWrapper(config, logger)
-	return &RabbitMQInstant{
+	return &Instance{
 		RabbitMQ: rmq,
 	}
 }
 
 // Init initialize instant
-func (r *RabbitMQInstant) Init() error {
+func (r *Instance) Init() error {
 	if err := r.RabbitMQ.Dial(); err != nil {
-		return err
+		return errors.Wrap(err, "[RabbitMQ] Dial error")
 	}
 	r.registerChannelRecover()
 	return nil
@@ -39,12 +39,12 @@ type ConsumerRegisterOptions struct {
 }
 
 // RegisterConsumerConfig register a consumer config to queue
-func (r *RabbitMQInstant) RegisterConsumerConfig(options ConsumerRegisterOptions) {
+func (r *Instance) RegisterConsumerConfig(options ConsumerRegisterOptions) {
 	r.consumersOptions = append(r.consumersOptions, options)
 }
 
 // ConsumerSubscribe subscribe consumerOptionsList
-func (r *RabbitMQInstant) ConsumerSubscribe() error {
+func (r *Instance) ConsumerSubscribe() error {
 	for _, v := range r.consumersOptions {
 		err := r.RegisterConsumer(v)
 		if err != nil {
@@ -55,7 +55,7 @@ func (r *RabbitMQInstant) ConsumerSubscribe() error {
 }
 
 // RegisterConsumer register a consumer
-func (r *RabbitMQInstant) RegisterConsumer(options ConsumerRegisterOptions) error {
+func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
 	consumer, err := r.RabbitMQ.NewConsumer(options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ type ProducerRegisterOptions struct {
 }
 
 // RegisterProducer register a producer
-func (r *RabbitMQInstant) RegisterProducer(options ProducerRegisterOptions) (*Producer, error) {
+func (r *Instance) RegisterProducer(options ProducerRegisterOptions) (*Producer, error) {
 	producer, err := r.RabbitMQ.NewProducer(options.Exchange, options.Queue, options.PublishingOptions)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (r *RabbitMQInstant) RegisterProducer(options ProducerRegisterOptions) (*Pr
 }
 
 // GetConsumer get a exist consumer by uuid
-func (r *RabbitMQInstant) GetConsumer(uuid string) (*Consumer, bool) {
+func (r *Instance) GetConsumer(uuid string) (*Consumer, bool) {
 	for _, v := range r.Consumers {
 		if v.UUID == uuid {
 			return v.Consumer, true
@@ -102,7 +102,7 @@ func (r *RabbitMQInstant) GetConsumer(uuid string) (*Consumer, bool) {
 }
 
 // GetProducer get a exist producer by uuid
-func (r *RabbitMQInstant) GetProducer(uuid string) (*Producer, bool) {
+func (r *Instance) GetProducer(uuid string) (*Producer, bool) {
 	for _, v := range r.Producers {
 		if v.UUID == uuid {
 			return v.Producer, true
@@ -112,7 +112,7 @@ func (r *RabbitMQInstant) GetProducer(uuid string) (*Producer, bool) {
 }
 
 // registerChannelRecover is used to recover channel after channel closed
-func (r *RabbitMQInstant) registerChannelRecover() {
+func (r *Instance) registerChannelRecover() {
 	go func() {
 		for _ = range channelShouldUpdateConn { // ignore data because of notification channel(with useless data)
 			r.Consumers.UpdateInstant(r.RabbitMQ)
@@ -130,7 +130,7 @@ type ConsumerUnit struct {
 	Consumer *Consumer
 }
 
-// Add add a unit to the list
+// Add a unit to the list
 func (p *ConsumerList) Add(unit ConsumerUnit) {
 	*p = append(*p, unit)
 }

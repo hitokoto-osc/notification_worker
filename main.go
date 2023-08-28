@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+
 	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
 
 	// 项目内文件
