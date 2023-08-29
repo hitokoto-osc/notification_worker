@@ -148,6 +148,9 @@ func (p *Producer) NotifyReturn(notifier func(message amqp.Return)) {
 // Shutdown gracefully closes all connections
 func (p *Producer) Shutdown() error {
 	po := p.session.PublishingOptions
+	if po == nil {
+		return errors.WithStack(errors.New("[RabbitMQ.Producer] PublishingOptions is missing"))
+	}
 	if err := shutdownChannel(
 		p.channel,
 		po.Tag,
