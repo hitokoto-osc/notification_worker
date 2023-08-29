@@ -14,6 +14,8 @@ var logger *zap.Logger
 
 func InitDefaultLogger(debug bool) {
 	SetLogDebugConfig(debug)
+	defer logger.Sync()
+	logger.Debug("logger construction succeeded")
 }
 
 func SetLogDebugConfig(debug bool) {
@@ -34,8 +36,6 @@ func SetLogDebugConfig(debug bool) {
 	if err != nil {
 		panic(errors.WithMessage(err, "logger construction failed"))
 	}
-	defer logger.Sync()
-	logger.Debug("logger construction succeeded")
 }
 
 func GetLogger() *zap.Logger {

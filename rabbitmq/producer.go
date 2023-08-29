@@ -147,8 +147,11 @@ func (p *Producer) NotifyReturn(notifier func(message amqp.Return)) {
 
 // Shutdown gracefully closes all connections
 func (p *Producer) Shutdown() error {
-	co := p.session.ConsumerOptions
-	if err := shutdownChannel(p.channel, co.Tag); err != nil {
+	po := p.session.PublishingOptions
+	if err := shutdownChannel(
+		p.channel,
+		po.Tag,
+	); err != nil {
 		return err
 	}
 

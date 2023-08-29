@@ -104,9 +104,13 @@ func (r *Instance) GetConsumer(uuid string) (*Consumer, bool) {
 
 // GetProducer get a exist producer by uuid
 func (r *Instance) GetProducer(uuid string) (*Producer, bool) {
-	for _, v := range r.Producers {
+	for i, v := range r.Producers {
 		if v.UUID == uuid {
-			return v.Producer, true
+			if !v.Producer.channel.IsClosed() {
+				return v.Producer, true
+			}
+			// Remove from list
+			r.Producers = append(r.Producers[:i], r.Producers[i+1:]...)
 		}
 	}
 	return nil, false

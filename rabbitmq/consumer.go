@@ -212,7 +212,7 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 			select {
 			case delivery := <-c.deliveries:
 				go func(delivery amqp.Delivery) {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+					ctx, cancel := context.WithTimeout(context.Background(), time.Hour) // 设置为 1 小时执行超时（照顾失败策略）
 					defer cancel()
 					u4, _ := uuid.NewRandom()
 					hctx := hcontext.NewFromContext(ctx)
