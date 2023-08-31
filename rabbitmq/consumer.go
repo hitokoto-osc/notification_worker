@@ -218,28 +218,52 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 					hctx := hcontext.NewFromContext(ctx)
 					logging.NewContext(hctx, zap.String("traceID", u4.String()))
 					logging.NewContext(hctx, zap.String("consumerTag", co.Tag))
-					logger := logging.WithContext(hctx).Sugar()
+					logger := logging.WithContext(hctx)
 					defer logger.Sync()
+					done := make(chan bool)
 					go func() {
-						if e := handler(hctx, delivery); e != nil {
-							logger.Errorf("[RabbitMQ.Consumer] Tag: %v, occurred error: %v, received data: %v", co.Tag, e.Error(), string(delivery.Body))
+						defer func() {
+							done <- true
+						}()
+						if e := c.handler(hctx, delivery); e != nil {
+							logger.Error(
+								"[RabbitMQ.Consumer] Occur a error while consuming a message. ",
+								zap.Error(e),
+								zap.Any("headers", delivery.Headers),
+								zap.ByteString(
+									"body",
+									delivery.Body,
+								),
+							)
 							if !co.AutoAck && co.AckByError {
 								logger.Debug("[RabbitMQ.Consumer] exec NACK")
 								if e = delivery.Nack(false, false); e != nil {
-									logger.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+									logger.Error(
+										"ACK failed:",
+										zap.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error")),
+									)
 								}
 							}
 						} else if !co.AutoAck && co.AckByError {
 							if e = delivery.Ack(false); e != nil {
-								logger.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error"))
+								logger.Error(
+									"ACK failed:",
+									zap.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error")),
+								)
 							}
 						}
 					}()
 
 					select {
 					case <-ctx.Done():
-						logger.Errorf("[RabbitMQ.Consumer] Timeout exceeded. Tag: %v, occurred error: %v, received data: %v", co.Tag, ctx.Err().Error(), string(delivery.Body))
+						logger.Error(
+							"[RabbitMQ.Consumer] Timeout exceeded.",
+							zap.Error(ctx.Err()),
+							zap.ByteString("body", delivery.Body),
+						)
 						return
+					case <-done:
+						logger.Debug("[RabbitMQ.Consumer] done")
 					}
 				}(delivery)
 			case <-c.closeSignal:
