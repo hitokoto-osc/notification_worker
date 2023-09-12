@@ -3,7 +3,7 @@ module source.hitokoto.cn/hitokoto/notification-worker
 go 1.21
 
 require (
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.525
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.549
 	github.com/cockroachdb/errors v1.11.0
 	github.com/golang-module/carbon/v2 v2.2.5
 	github.com/google/uuid v1.3.1
