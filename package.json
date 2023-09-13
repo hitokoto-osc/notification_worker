@@ -8,6 +8,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "postinstall": "husky install",
     "commit": "git-cz"
   },
   "devDependencies": {
@@ -19,11 +20,6 @@
     "cz-conventional-changelog": "3.3.0",
     "husky": "8.0.3",
     "lint-staged": "14.0.1"
-  },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
   },
   "config": {
     "commitizen": {
