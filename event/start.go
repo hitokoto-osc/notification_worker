@@ -1,12 +1,12 @@
 package event
 
 import (
+	"github.com/hitokoto-osc/notification-worker/config"
+	"github.com/hitokoto-osc/notification-worker/event/notification"
+	"github.com/hitokoto-osc/notification-worker/logging"
+	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/config"
-	"source.hitokoto.cn/hitokoto/notification-worker/event/notification"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

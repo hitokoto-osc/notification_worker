@@ -3,9 +3,9 @@ package logging
 import (
 	"context"
 	"github.com/cockroachdb/errors"
+	hcontext "github.com/hitokoto-osc/notification-worker/context"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	hcontext "source.hitokoto.cn/hitokoto/notification-worker/context"
 )
 
 const loggerKey = "logger"

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/aliyun/directmail"
+	"github.com/hitokoto-osc/notification-worker/logging"
+	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 	"strconv"
 )
 

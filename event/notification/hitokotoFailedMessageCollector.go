@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
+	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
 	"math"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"time"
 
+	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 var ProducerMapping = make(map[string]string)

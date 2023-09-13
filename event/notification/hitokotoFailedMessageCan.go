@@ -2,11 +2,11 @@ package notification
 
 import (
 	"context"
+	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 
+	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"source.hitokoto.cn/hitokoto/notification-worker/rabbitmq"
 )
 
 // HitokotoFailedMessageCanEvent 处理不可恢复通知死信 —— 发给管理员

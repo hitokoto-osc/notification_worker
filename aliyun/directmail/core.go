@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dm"
 	"github.com/cockroachdb/errors"
+	config "github.com/hitokoto-osc/notification-worker/config"
+	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
-	config "source.hitokoto.cn/hitokoto/notification-worker/config"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 )
 
 var client *dm.Client

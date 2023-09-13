@@ -3,15 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/hitokoto-osc/notification-worker/logging"
 	"os"
 	"runtime"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 
-	"source.hitokoto.cn/hitokoto/notification-worker/aliyun/directmail"
+	"github.com/hitokoto-osc/notification-worker/aliyun/directmail"
 
 	// 项目内文件
-	"source.hitokoto.cn/hitokoto/notification-worker/config"
-	"source.hitokoto.cn/hitokoto/notification-worker/event"
+	"github.com/hitokoto-osc/notification-worker/config"
+	"github.com/hitokoto-osc/notification-worker/event"
 )
 
 // 程序信息

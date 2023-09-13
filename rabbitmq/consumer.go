@@ -3,9 +3,9 @@ package rabbitmq
 import (
 	"context"
 	"github.com/cockroachdb/errors"
+	hcontext "github.com/hitokoto-osc/notification-worker/context"
+	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
-	hcontext "source.hitokoto.cn/hitokoto/notification-worker/context"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 	"time"
 
 	"github.com/google/uuid"

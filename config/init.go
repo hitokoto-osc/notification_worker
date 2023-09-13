@@ -1,9 +1,9 @@
 package config
 
 import (
+	"github.com/hitokoto-osc/notification-worker/logging"
 	viper "github.com/spf13/viper"
 	"go.uber.org/zap"
-	"source.hitokoto.cn/hitokoto/notification-worker/logging"
 )
 
 func Init(path string) {

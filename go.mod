@@ -1,4 +1,4 @@
-module source.hitokoto.cn/hitokoto/notification-worker
+module github.com/hitokoto-osc/notification-worker
 
 go 1.21
 
