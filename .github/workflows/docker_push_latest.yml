@@ -31,12 +31,12 @@ jobs:
           export COMMIT_TIME=$(git show -s --format=%ci $COMMIT_HASH)
           export CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
       - name: Build
-        run: mkdir -p ./temp && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.BuildTag=$COMMIT_HASH -X main.BuildTime=$CURRENT_TIME -X main.CommitTime=$COMMIT_TIME -s -w --extldflags '-static -fpic'" -o ./temp/linux_amd64/hitokoto_notification_worker main.go
+        run: mkdir -p ./temp && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/hitokoto-osc/notification-worker/config.BuildTag=$COMMIT_HASH -X github.com/hitokoto-osc/notification-worker/config.BuildTime=$CURRENT_TIME -X github.com/hitokoto-osc/notification-worker/config.CommitTime=$COMMIT_TIME -s -w --extldflags '-static -fpic'" -o ./temp/linux_amd64/hitokoto_notification_worker main.go
       -
         name: Build and push
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: hitokoto/notification-worker:latest
+          tags: hitokoto/notification-worker:dev-latest
           file: ./manifest/docker/Dockerfile
           context: .
