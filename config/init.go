@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	viper "github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -15,7 +16,6 @@ func Init(path string) {
 
 	logger.Debug("开始读取配置文件...")
 	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")        // 二进制执行目录
 	viper.AddConfigPath("./config") // 二进制执行目录的配置文件夹
 	viper.AddConfigPath("./bin")
@@ -24,7 +24,14 @@ func Init(path string) {
 	viper.AddConfigPath(path)
 	err := viper.ReadInConfig() // 根据以上配置读取加载配置文件
 	if err != nil {
-		logger.Fatal("无法解析配置", zap.Error(err)) // 读取配置文件失败致命错误
+		var e viper.ConfigFileNotFoundError
+		if !errors.As(err, &e) {
+			logger.Fatal("无法解析配置", zap.Error(err)) // 读取配置文件失败致命错误
+		}
+		logger.Warn("未检测到配置文件，使用环境变量运行。")
 	}
-	logger.Debug("使用配置文件：", zap.String("configFileUsed", viper.ConfigFileUsed()))
+	logger.Debug("已成功加载配置。",
+		zap.String("config_file_used", viper.ConfigFileUsed()),
+		zap.Any("settings", viper.AllSettings()),
+	)
 }
