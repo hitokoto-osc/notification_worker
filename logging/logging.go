@@ -2,40 +2,16 @@ package logging
 
 import (
 	"context"
-	"github.com/cockroachdb/errors"
 	hcontext "github.com/hitokoto-osc/notification-worker/context"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 const loggerKey = "logger"
 
 var logger *zap.Logger
 
-func InitDefaultLogger(debug bool) {
-	SetLogDebugConfig(debug)
-	defer logger.Sync()
-	logger.Debug("logger construction succeeded")
-}
-
-func SetLogDebugConfig(debug bool) {
-	var (
-		c   zap.Config
-		err error
-	)
-	if debug {
-		c = zap.NewDevelopmentConfig()
-	} else {
-		c = zap.NewProductionConfig()
-	}
-	// 统一配置
-	c.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	c.OutputPaths = []string{"stdout"}
-	c.ErrorOutputPaths = []string{"stderr"}
-	logger, err = c.Build(zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-	if err != nil {
-		panic(errors.WithMessage(err, "logger construction failed"))
-	}
+func setZapGlobalLogger() {
+	zap.ReplaceGlobals(logger)
 }
 
 func GetLogger() *zap.Logger {

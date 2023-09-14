@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
+	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/aliyun/directmail"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"

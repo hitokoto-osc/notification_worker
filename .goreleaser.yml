@@ -21,15 +21,15 @@ builds:
       - arm
       - arm64
     ldflags:
-      - -X main.Version={{.Version}} -X main.BuildTag={{.FullCommit}} -X main.BuildTime={{ .Date }} -X main.CommitTime={{ .CommitDate }}
+      - -X github.com/hitokoto-osc/notification-worker/config.Version={{.Version}} -X github.com/hitokoto-osc/notification-worker/config.BuildTag={{.FullCommit}} -X github.com/hitokoto-osc/notification-worker/config.BuildTime={{ .Date }} -X github.com/hitokoto-osc/notification-worker/config.CommitTime={{ .CommitDate }}
 archives:
-  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+  - name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
     format_overrides:
       - goos: windows
         format: zip
@@ -46,3 +46,30 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+dockers:
+  - goos: linux
+    # GOARCH of the built binaries/packages that should be used.
+    goarch: amd64
+    # GOARM of the built binaries/packages that should be used.
+    goarm: ''
+    image_templates:
+      - "hitokoto/notification-worker:latest"
+      - "hitokoto/notification-worker:{{ .Tag }}"
+      - "hitokoto/notification-worker:v{{ .Major }}"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/hitokoto-osc/notification_worker/master/README.md"
+      - "--label=io.artifacthub.package.logo-url=https://cdn.a632079.me/assets/images/hitokoto-logo-512x512.png"
+      - '--label=io.artifacthub.package.maintainers=[{"name":"a632079","email":"a632079@qq.com"}]'
+      - "--label=io.artifacthub.package.license=MIT"
+      - "--label=org.opencontainers.image.description=基于 RabbitMQ 的消费者事件模型，目前仅实现了通知事件"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - config.example.yml

@@ -2,16 +2,15 @@ package config
 
 import (
 	"github.com/cockroachdb/errors"
-	"github.com/hitokoto-osc/notification-worker/logging"
 	viper "github.com/spf13/viper"
 	"go.uber.org/zap"
 	"strings"
 )
 
-func Init(path string) {
-	logger := logging.GetLogger()
+func Parse() {
+	logger := zap.L()
+	defer logger.Sync()
 	logger.Debug("初始化默认配置...")
-	loadMain()
 	loadRabbitMQ()
 	loadAliyun()
 
@@ -23,7 +22,7 @@ func Init(path string) {
 	viper.AddConfigPath("./bin")
 	viper.AddConfigPath("..")      // 二进制上级目录
 	viper.AddConfigPath("../conf") // 二进制上级目录的配置文件夹
-	viper.AddConfigPath(path)
+	viper.AddConfigPath(configFile)
 	err := viper.ReadInConfig() // 根据以上配置读取加载配置文件
 	if err != nil {
 		var e viper.ConfigFileNotFoundError
