@@ -8,6 +8,7 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+project_name: notification-worker
 builds:
   - env:
       - CGO_ENABLED=0
@@ -56,7 +57,7 @@ dockers:
       - "hitokoto/notification-worker:latest"
       - "hitokoto/notification-worker:{{ .Tag }}"
       - "hitokoto/notification-worker:v{{ .Major }}"
-    dockerfile: Dockerfile
+    dockerfile: ./manifest/docker/Dockerfile
     use: buildx
     build_flag_templates:
       - "--pull"

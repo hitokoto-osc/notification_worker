@@ -10,11 +10,13 @@ RUN apk add alpine-conf tzdata && \
     apk del alpine-conf
 
 ENV WORKDIR                                           /app
-ADD ./temp/linux_amd64/hitokoto_notification_worker   $WORKDIR/hitokoto_notification_worker
-RUN chmod +x $WORKDIR/hitokoto_notification_worker
+VOLUME                                                $WORKDIR/data
+ADD ./config.example.yml                              $WORKDIR/config.yml
+ADD ./notification-worker                             $WORKDIR/notification-worker
+RUN chmod +x $WORKDIR/notification-worker
 
 ###############################################################################
 #                                   START
 ###############################################################################
 WORKDIR $WORKDIR
-CMD     ["./hitokoto_notification_worker"]
+CMD     ["./notification-worker"]
