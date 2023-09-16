@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
-	"github.com/hitokoto-osc/notification-worker/aliyun/directmail"
 	"github.com/hitokoto-osc/notification-worker/logging"
+	"github.com/hitokoto-osc/notification-worker/mail"
+	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
@@ -87,7 +88,14 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 				reviewResult.Desc,
 				carbon.Now().Format("Y 年 n 月 j 日"),
 			)
-			err = directmail.SingleSendMail(ctx, message.To, "喵！您的句子审核结果出来了！", html, true)
+			err = mail.SendSingle(ctx, &mailer.Mailer{
+				Type: mailer.TypeNormal,
+				Mail: mailer.Mail{
+					To:      []string{message.To},
+					Subject: "喵！您的句子审核结果出来了！",
+					Body:    html,
+				},
+			})
 			return err
 		},
 	}

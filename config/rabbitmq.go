@@ -4,7 +4,7 @@ import "github.com/spf13/viper"
 
 // 加载 RabbitMQ 相关配置
 
-func loadRabbitMQ() {
+func init() {
 	viper.SetDefault("rabbitmq.host", "127.0.0.1")
 	viper.SetDefault("rabbitmq.port", 5672)
 	viper.SetDefault("rabbitmq.user", "admin")

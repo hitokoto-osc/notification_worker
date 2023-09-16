@@ -10,9 +10,6 @@ import (
 func Parse() {
 	logger := zap.L()
 	defer logger.Sync()
-	logger.Debug("初始化默认配置...")
-	loadRabbitMQ()
-	loadAliyun()
 
 	logger.Debug("开始读取配置文件...")
 	viper.SetConfigName("config")

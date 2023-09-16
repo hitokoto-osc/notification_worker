@@ -1,21 +1,22 @@
-package mail
+package mailer
 
 import "context"
 
 type Sender interface {
-	SingleSend(Ctx context.Context, mailer *Mailer) error
+	SendSingle(ctx context.Context, mail *Mailer) error
 }
 
-type MailerType int
+type Type int
 
 const (
-	MailerTypeNormal = iota
-	MailerTypeTemplate
+	TypeNormal Type = iota
+	TypeTemplate
 )
 
 type Mailer struct {
-	Type     MailerType
-	Mail     *Mail
+	Type     Type
+	Mail     Mail
+	Body     *MailBody
 	Template *Template
 }
 
@@ -24,6 +25,11 @@ type Mail struct {
 	To      []string
 	CC      []string
 	BCC     []string
+	Subject string
+	Body    string
+}
+
+type MailBody struct {
 	Subject string
 	Body    string
 }

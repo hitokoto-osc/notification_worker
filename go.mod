@@ -3,7 +3,9 @@ module github.com/hitokoto-osc/notification-worker
 go 1.21
 
 require (
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.556
+	github.com/alibabacloud-go/dm-20151123/v2 v2.0.4
+	github.com/alibabacloud-go/tea-rpc v1.3.3
+	github.com/alibabacloud-go/tea-utils v1.4.5
 	github.com/cockroachdb/errors v1.11.1
 	github.com/golang-module/carbon/v2 v2.2.7
 	github.com/google/uuid v1.3.1
@@ -13,7 +15,22 @@ require (
 	go.uber.org/zap v1.25.0
 )
 
-require go.uber.org/multierr v1.11.0 // indirect
+require (
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2 // indirect
+	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/openapi-util v0.1.0 // indirect
+	github.com/alibabacloud-go/tea v1.1.19 // indirect
+	github.com/alibabacloud-go/tea-rpc-utils v1.1.2 // indirect
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.4 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
+	github.com/aliyun/credentials-go v1.1.2 // indirect
+	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/tjfoc/gmsm v1.3.2 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+)
 
 require (
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
@@ -22,14 +39,12 @@ require (
 	github.com/getsentry/sentry-go v0.24.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect; indirect+
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect

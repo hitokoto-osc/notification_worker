@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/hitokoto-osc/notification-worker/aliyun/directmail"
 	"github.com/hitokoto-osc/notification-worker/flags"
 	"go.uber.org/zap"
 	"runtime"
@@ -14,8 +13,6 @@ import (
 func init() {
 	config.Parse()
 	flags.Do()
-	// 初始化阿里云 SDK
-	directmail.InitAliyunDirectMail()
 }
 
 func main() {
