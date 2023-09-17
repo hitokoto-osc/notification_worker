@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func init() {
+func doInit() {
 	defer zap.L().Sync()
 	driverType := driver.Type(config.MailDriver())
 	d := driver.Get(driverType)
@@ -25,6 +25,9 @@ func init() {
 var instance mailer.Sender
 
 func GetSender() mailer.Sender {
+	if instance == nil {
+		doInit()
+	}
 	return instance
 }
 

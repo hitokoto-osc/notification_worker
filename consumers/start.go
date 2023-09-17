@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"github.com/hitokoto-osc/notification-worker/config"
+	_ "github.com/hitokoto-osc/notification-worker/consumers/notification"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
@@ -35,8 +36,8 @@ func InitRabbitMQEvent() {
 	}
 
 	// 注册接收器
-	logger.Info("开始注册消息接收器...")
 	options := provider.Get()
+	logger.Info("开始注册消息接收器...", zap.Any("options", options))
 	for _, v := range options {
 		instance.RegisterConsumerConfig(*v)
 	}
