@@ -48,9 +48,7 @@ func (r *RabbitMQ) NewProducer(instance *Instance, e Exchange, q Queue, po Publi
 	}
 
 	// getting a channel
-	mutex.Lock()
 	channel, err := r.conn.Channel()
-	mutex.Unlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "[RabbitMQ.Producer] Channel creation error")
 	}
@@ -145,7 +143,6 @@ func (p *Producer) NotifyReturn(notifier func(message amqp.Return)) {
 			notifier(res)
 		}
 	}()
-
 }
 
 // Shutdown gracefully closes all connections
@@ -154,6 +151,8 @@ func (p *Producer) Shutdown() error {
 	if po == nil {
 		return errors.WithStack(errors.New("[RabbitMQ.Producer] PublishingOptions is missing"))
 	}
+	logger := p.RabbitMQ.log
+	defer logger.Sync()
 	if err := shutdownChannel(
 		p.channel,
 		po.Tag,
@@ -163,7 +162,6 @@ func (p *Producer) Shutdown() error {
 
 	// Since publishing is asynchronous this can happen
 	// instantly without waiting for a done message.
-	defer p.RabbitMQ.log.Info("Producer shutdown OK")
-	defer p.RabbitMQ.log.Sync()
+	defer logger.Info("Producer shutdown OK")
 	return nil
 }

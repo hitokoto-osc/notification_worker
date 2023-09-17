@@ -4,7 +4,6 @@ import (
 	"github.com/hitokoto-osc/notification-worker/flags"
 	"go.uber.org/zap"
 	"runtime"
-
 	// 项目内文件
 	"github.com/hitokoto-osc/notification-worker/config"
 	"github.com/hitokoto-osc/notification-worker/consumers"
@@ -24,6 +23,5 @@ func main() {
 		zap.String("build_time", config.BuildTime),
 		zap.String("runtime", runtime.Version()),
 	)
-	go consumers.InitRabbitMQEvent()
-	select {} // 堵塞方法
+	consumers.Run()
 }

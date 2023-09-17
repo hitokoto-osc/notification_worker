@@ -23,11 +23,9 @@ type Consumer struct {
 	deliveries <-chan amqp.Delivery
 	// This handler will be called when a
 	handler func(ctx Ctx, delivery amqp.Delivery) error
-	// A notifiyng channel for publishings
+	// A notifying channel for publishing's
 	// will be used for sync. between close channel and consume handler
 	done chan error
-	// This signal is intended to notify close to  shutdown gracefully
-	closeSignal chan int
 	// Current producer connection settings
 	session Session
 }
@@ -63,18 +61,12 @@ func (r *RabbitMQ) NewConsumer(instance *Instance, e Exchange, q Queue, bo Bindi
 		return nil, errors.WithStack(errors.New("[RabbitMQ.Consumer] connection is nil"))
 	}
 	// getting a channel
-	mutex.Lock()
 	channel, err := r.conn.Channel()
-	mutex.Unlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "[RabbitMQ.Consumer] get channel error")
 	}
-	uuidInstance, err := uuid.NewRandom()
-	if err != nil {
-		return nil, errors.Wrap(err, "[RabbitMQ.Consumer] uuid.NewRandom error")
-	}
 	c := &Consumer{
-		UUID:     uuidInstance.String(),
+		UUID:     uuid.NewString(),
 		RabbitMQ: r,
 		instance: instance,
 		channel:  channel,
@@ -97,37 +89,36 @@ func (r *RabbitMQ) NewConsumer(instance *Instance, e Exchange, q Queue, bo Bindi
 
 // HandleError register the recover loop against channel closed
 func (c *Consumer) HandleError() {
+	logger := c.RabbitMQ.log
 	go func() {
-	KeepAliveLoop:
-		for {
-			select {
-			case e := <-c.channel.NotifyClose(make(chan *amqp.Error)):
-				c.RabbitMQ.log.Errorf("[RabbitMQ] Channel：%+v \n遇到问题已关闭，错误原因：%v", c.session, e.Error())
-				for i := 0; i < 5; i++ {
-					c.RabbitMQ.log.Infof("[RabbitMQ] 将在 8 s 后尝试重新注册 Channel: %+v", c.session)
-					time.Sleep(8 * time.Second)
-					c.RabbitMQ.log.Debugf("[RabbitMQ] 开始注册 Channel：%+v", c.session)
-					err := func() error {
-						var ch *amqp.Channel
-						var err error
-						mutex.Lock()
-						if ch, err = c.RabbitMQ.Conn().Channel(); err != nil {
-							mutex.Unlock()
-							return err
-						}
-						mutex.Unlock()
-						c.channel = ch
-						return nil
-					}()
-					if err == nil {
-						break KeepAliveLoop
-					} else {
-						c.RabbitMQ.log.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
-						if i == 4 {
-							c.RabbitMQ.log.Fatal("[RabbitMQ] 无法恢复 Channel，进程退出。")
-						}
+		for e := range c.channel.NotifyClose(make(chan *amqp.Error)) {
+			if e == nil { // channel closed by user
+				logger.Infof("[RabbitMQ] 优雅退出：Channel %s 保活方法已停止。", c.session.ConsumerOptions.Tag)
+				break
+			}
+			logger.Errorf("[RabbitMQ] Channel：%+v \n 遇到问题已关闭，错误原因：%v", c.session, e.Error())
+			for i := 0; i < 5; i++ {
+				logger.Infof("[RabbitMQ] 将在 8 s 后尝试重新注册 Channel: %+v", c.session)
+				time.Sleep(8 * time.Second)
+				logger.Debugf("[RabbitMQ] 开始注册 Channel：%+v", c.session)
+				err := func() error {
+					var ch *amqp.Channel
+					var err error
+					if ch, err = c.RabbitMQ.Conn().Channel(); err != nil {
+						return err
+					}
+					c.channel = ch
+					return nil
+				}()
+				if err == nil {
+					break
+				} else {
+					logger.Error("[RabbitMQ] 重注册失败，信息：" + err.Error())
+					if i == 4 {
+						logger.Fatal("[RabbitMQ] 无法恢复 Channel，进程退出。")
 					}
 				}
+
 			}
 		}
 	}()
@@ -187,7 +178,8 @@ func (c *Consumer) Consume(handler func(ctx Ctx, delivery amqp.Delivery) error) 
 	co := c.session.ConsumerOptions
 	q := c.session.Queue
 	// Exchange bound to Queue, starting Consume
-	deliveries, err := c.channel.Consume(
+	var err error
+	c.deliveries, err = c.channel.Consume(
 		//ass consume from real queue
 		q.Name,       // name
 		co.Tag,       // consumerTag,
@@ -202,79 +194,72 @@ func (c *Consumer) Consume(handler func(ctx Ctx, delivery amqp.Delivery) error) 
 	}
 
 	// should we stop streaming, in order not to consume from server?
-	c.deliveries = deliveries
 	c.handler = handler
 
-	c.RabbitMQ.log.Infof("[RabbitMQ.Consumer] Tag: %v, deliveries channel started.", c.session.ConsumerOptions.Tag)
+	logger := c.RabbitMQ.log
+	logger.Infof("[RabbitMQ.Consumer] Tag: %v, deliveries channel started.", c.session.ConsumerOptions.Tag)
 	go func() {
-		// handle all consumer errors, if required re-connect
-		// there are problems with reconnection logic for now
-	consumeLoop:
-		for {
-			select {
-			case delivery := <-c.deliveries:
-				go func(delivery amqp.Delivery) {
-					ctxWithDeadline, cancel := context.WithTimeout(context.Background(), time.Hour) // 设置为 1 小时执行超时（照顾失败策略）
-					defer cancel()
-					u := uuid.NewString()
-					rCtx := NewCtxFromContext(ctxWithDeadline, c.instance)
-					logging.NewContext(rCtx,
-						zap.String("trace_id", u),
-						zap.String("consumer_tag", co.Tag),
-					)
-					logger := logging.WithContext(rCtx)
-					defer logger.Sync()
-					done := make(chan bool)
-					go func() {
-						defer func() {
-							done <- true
-						}()
-						if e := c.handler(rCtx, delivery); e != nil {
-							logger.Error(
-								"[RabbitMQ.Consumer] Occur a error while consuming a message. ",
-								zap.Error(e),
-								zap.Any("headers", delivery.Headers),
-								zap.ByteString(
-									"body",
-									delivery.Body,
-								),
-							)
-							if !co.AutoAck && co.AckByError {
-								logger.Debug("[RabbitMQ.Consumer] exec NACK")
-								if e = delivery.Nack(false, false); e != nil {
-									logger.Error(
-										"ACK failed:",
-										zap.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error")),
-									)
-								}
-							}
-						} else if !co.AutoAck && co.AckByError {
-							if e = delivery.Ack(false); e != nil {
-								logger.Error(
+		for delivery := range c.deliveries {
+			go func(delivery amqp.Delivery) {
+				ctxWithDeadline, cancel := context.WithTimeout(context.Background(), time.Hour) // 设置为 1 小时执行超时（照顾失败策略）
+				defer cancel()
+				u := uuid.NewString()
+				rCtx := NewCtxFromContext(ctxWithDeadline, c.instance)
+				logging.NewContext(rCtx,
+					zap.String("trace_id", u),
+					zap.String("consumer_tag", co.Tag),
+				)
+				log := logging.WithContext(rCtx)
+				defer log.Sync()
+				done := make(chan bool)
+				go func() {
+					defer func() {
+						done <- true
+					}()
+					if e := c.handler(rCtx, delivery); e != nil {
+						log.Error(
+							"[RabbitMQ.Consumer] Occur a error while consuming a message. ",
+							zap.Error(e),
+							zap.Any("headers", delivery.Headers),
+							zap.ByteString(
+								"body",
+								delivery.Body,
+							),
+						)
+						if !co.AutoAck && co.AckByError {
+							log.Debug("[RabbitMQ.Consumer] exec NACK")
+							if e = delivery.Nack(false, false); e != nil {
+								log.Error(
 									"ACK failed:",
 									zap.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error")),
 								)
 							}
 						}
-					}()
-
-					select {
-					case <-rCtx.Done():
-						logger.Error(
-							"[RabbitMQ.Consumer] Timeout exceeded.",
-							zap.Error(rCtx.Err()),
-							zap.ByteString("body", delivery.Body),
-						)
-						return
-					case <-done:
-						logger.Debug("[RabbitMQ.Consumer] done")
+					} else if !co.AutoAck && co.AckByError {
+						if e = delivery.Ack(false); e != nil {
+							log.Error(
+								"ACK failed:",
+								zap.Error(errors.WithMessage(e, "[RabbitMQ.Consumer] ACK Error")),
+							)
+						}
 					}
-				}(delivery)
-			case <-c.closeSignal:
-				break consumeLoop
-			}
+				}()
+
+				select {
+				case <-rCtx.Done():
+					log.Error(
+						"[RabbitMQ.Consumer] Timeout exceeded.",
+						zap.Error(rCtx.Err()),
+						zap.ByteString("body", delivery.Body),
+					)
+					return
+				case <-done:
+					log.Debug("[RabbitMQ.Consumer] done")
+				}
+			}(delivery)
 		}
-		c.RabbitMQ.log.Info("handle: deliveries channel closed")
+
+		logger.Info("handle: deliveries channel closed")
 		c.done <- nil
 	}()
 	return nil
@@ -320,9 +305,10 @@ func (c *Consumer) Shutdown() error {
 	if err := shutdownChannel(c.channel, co.Tag); err != nil {
 		return err
 	}
-	defer c.RabbitMQ.log.Sync()
-	defer c.RabbitMQ.log.Info("Consumer shutdown OK")
-	c.RabbitMQ.log.Info("Waiting for Consumer handler to exit")
+	logger := c.RabbitMQ.log
+	defer logger.Sync()
+	defer logger.Infof("Consumer %s shutdown OK", co.Tag)
+	logger.Infof("Waiting for Consumer %s handler to exit", co.Tag)
 
 	// if we have not called the Consume yet, we can return here
 	if c.deliveries == nil {
@@ -332,7 +318,5 @@ func (c *Consumer) Shutdown() error {
 	// this channel is here for finishing the consumer's ranges of
 	// delivery chans.  We need every delivery to be processed, here make
 	// sure to wait for all consumers goroutines to finish before exiting our
-	// process.
-	c.closeSignal <- 1
 	return <-c.done
 }

@@ -5,14 +5,11 @@ import (
 	"github.com/cockroachdb/errors"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
-
-var mutex sync.Mutex
 
 type RabbitMQ struct {
 	// The RabbitMQ connection between client and the server
@@ -58,29 +55,31 @@ func (r *RabbitMQ) Dial() (err error) {
 // To reconnect after a transport or protocol error, we should register a listener here and
 // re-connect to server
 func (r *RabbitMQ) handleError() {
+	logger := r.log
 	go func() {
-	KeepAliveLoop:
-		for {
-			select {
-			case err := <-r.conn.NotifyClose(make(chan *amqp.Error)):
-				r.log.Error("[RabbitMQ] AMQP 连接丢失，错误信息" + err.Error())
-				for i := 0; i < 5; i++ {
-					r.log.Info("[RabbitMQ] AMQP 连接将在 5 秒后尝试重连接...")
-					time.Sleep(5 * time.Second)
-					e := func() (err error) {
-						err = r.Dial()
-						return
-					}()
-					if e != nil {
-						r.log.Error("[RabbitMQ] AMQP 重连接失败，错误信息：" + e.Error())
-					} else {
-						r.log.Info("[RabbitMQ] AMQP 连接已成功重建")
-						channelShouldUpdateConn <- 1 // notifyUpdateLoop
-						break KeepAliveLoop
-					}
-					if i == 4 {
-						r.log.Fatal("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
-					}
+		defer logger.Sync()
+		for err := range r.conn.NotifyClose(make(chan *amqp.Error)) {
+			if err == nil {
+				logger.Info("[RabbitMQ] 优雅退出：AMQP 连接保活逻辑已停止。")
+				break
+			}
+			logger.Error("[RabbitMQ] AMQP 连接丢失，错误信息" + err.Error())
+			for i := 0; i < 5; i++ {
+				logger.Info("[RabbitMQ] AMQP 连接将在 5 秒后尝试重连接...")
+				time.Sleep(5 * time.Second)
+				e := func() (err error) {
+					err = r.Dial()
+					return
+				}()
+				if e != nil {
+					logger.Error("[RabbitMQ] AMQP 重连接失败，错误信息：" + e.Error())
+				} else {
+					logger.Info("[RabbitMQ] AMQP 连接已成功重建")
+					channelShouldUpdateConn <- 1 // notifyUpdateLoop
+					break
+				}
+				if i == 4 {
+					logger.Fatal("[RabbitMQ] AMQP 重连接次数过多，程序退出。")
 				}
 			}
 		}
@@ -139,9 +138,9 @@ func shutdownChannel(channel *amqp.Channel, tag string) error {
 	// This waits for a server acknowledgment which means the sockets will have
 	// flushed all outbound publishings prior to returning.  It's important to
 	// block on Close to not lose any publishings.
-	if err := channel.Cancel(tag, true); err != nil {
+	if err := channel.Cancel(tag, false); err != nil {
 		if amqpError, isAmqpError := err.(*amqp.Error); isAmqpError && amqpError.Code != 504 {
-			return fmt.Errorf("AMQP connection close error: %s", err)
+			return errors.Wrap(err, "AMQP channel cancel error")
 		}
 	}
 

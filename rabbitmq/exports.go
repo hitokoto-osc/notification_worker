@@ -14,6 +14,9 @@ type Instance struct {
 	Consumers        ConsumerList
 	Producers        ProducerList
 	consumersOptions []ConsumerRegisterOptions // 用于批量注册
+	closed           chan bool
+	isClosed         bool
+	err              error
 }
 
 // New create rabbitmq wrapper instant
@@ -21,16 +24,52 @@ func New(config *Config, logger Logger) *Instance {
 	rmq := NewWrapper(config, logger)
 	return &Instance{
 		RabbitMQ: rmq,
+		closed:   make(chan bool, 1),
 	}
 }
 
-// Init initialize instant
+// Init initialize instance
 func (r *Instance) Init() error {
 	if err := r.RabbitMQ.Dial(); err != nil {
 		return errors.Wrap(err, "[RabbitMQ] Dial error")
 	}
 	r.registerChannelRecover()
 	return nil
+}
+
+// Shutdown gracefully close instance
+func (r *Instance) Shutdown() error {
+	defer func() {
+		r.closed <- true
+	}()
+	r.RabbitMQ.log.Debug("shutdown consumers...")
+	r.err = r.Consumers.Shutdown()
+	if r.err != nil {
+		return errors.Wrap(r.err, "consumers shutdown error")
+	}
+	r.RabbitMQ.log.Debug("shutdown producers...")
+	r.err = r.Producers.Shutdown()
+	if r.err != nil {
+		return errors.Wrap(r.err, "producers shutdown error")
+	}
+	r.RabbitMQ.log.Debug("shutdown rabbitmq...")
+	r.err = r.RabbitMQ.Shutdown()
+	if r.err != nil {
+		return errors.Wrap(r.err, "rabbitmq shutdown error")
+	}
+	return nil
+}
+
+// RegisterCloseHandler register a close handler
+func (r *Instance) RegisterCloseHandler(fn func(err error)) {
+	<-r.closed
+	fn(r.err)
+	close(r.closed)
+	r.isClosed = true
+}
+
+func (r *Instance) IsClosed() bool {
+	return r.isClosed
 }
 
 // ConsumerRegisterOptions is the options of register consumer
@@ -78,15 +117,18 @@ func (r *Instance) ConsumerSubscribeWithTimeout(timeout time.Duration) error {
 
 // RegisterConsumer register a consumer
 func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
-	consumer, err := r.RabbitMQ.NewConsumer(r, options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
-	if err != nil {
-		return err
-	}
+	var consumer *Consumer
 	var e = make(chan error)
 	go func() {
+		var err error
+		consumer, err = r.RabbitMQ.NewConsumer(r, options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
+		if err != nil {
+			e <- err
+			return
+		}
 		e <- consumer.Consume(options.CallFunc)
 	}()
-	if err = <-e; err != nil {
+	if err := <-e; err != nil {
 		return err
 	}
 	r.Consumers.Add(ConsumerUnit{
@@ -185,6 +227,18 @@ func (p *ConsumerList) Remove(uuid string) {
 	}
 }
 
+func (p *ConsumerList) Shutdown() error {
+	p.Lock()
+	defer p.Unlock()
+	for _, unit := range p.list {
+		if err := unit.Consumer.Shutdown(); err != nil {
+			return err
+		}
+	}
+	p.list = nil
+	return nil
+}
+
 // ProducerList defines a ProducerUnit List
 type ProducerList struct {
 	list []ProducerUnit
@@ -235,4 +289,16 @@ func (p *ProducerList) Remove(uuid string) {
 			p.list = append(p.list[:i], p.list[i+1:]...)
 		}
 	}
+}
+
+func (p *ProducerList) Shutdown() error {
+	p.Lock()
+	defer p.Unlock()
+	for _, unit := range p.list {
+		if err := unit.Producer.Shutdown(); err != nil {
+			return err
+		}
+	}
+	p.list = nil
+	return nil
 }
