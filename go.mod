@@ -3,9 +3,10 @@ module github.com/hitokoto-osc/notification-worker
 go 1.21
 
 require (
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2
 	github.com/alibabacloud-go/dm-20151123/v2 v2.0.4
 	github.com/alibabacloud-go/tea-rpc v1.3.3
-	github.com/alibabacloud-go/tea-utils v1.4.5
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
 	github.com/cockroachdb/errors v1.11.1
 	github.com/golang-module/carbon/v2 v2.2.7
 	github.com/google/uuid v1.3.1
@@ -17,13 +18,12 @@ require (
 
 require (
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
 	github.com/alibabacloud-go/openapi-util v0.1.0 // indirect
 	github.com/alibabacloud-go/tea v1.1.19 // indirect
 	github.com/alibabacloud-go/tea-rpc-utils v1.1.2 // indirect
-	github.com/alibabacloud-go/tea-utils/v2 v2.0.4 // indirect
+	github.com/alibabacloud-go/tea-utils v1.3.5 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
 	github.com/aliyun/credentials-go v1.1.2 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
