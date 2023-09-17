@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
+	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
 	"math"
@@ -14,47 +15,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-var ProducerMapping = make(map[string]string)
-
-// getProducer get rabbitmq producer
-func getProducer(ctx context.Context, instance *rabbitmq.Instance, exchangeName, queueName, routingKey string) (*rabbitmq.Producer, error) {
-	logger := logging.WithContext(ctx)
-	if routingKey == "" {
-		routingKey = exchangeName + "." + queueName
-	}
-	uuid, ok := ProducerMapping[routingKey]
-	if ok {
-		var producer *rabbitmq.Producer
-		producer, ok = instance.GetProducer(uuid)
-		if ok {
-			return producer, nil
-		}
-		logger.Warn("[event.hitokotoFailedMessageCollector] producer not found, try to recreate it.",
-			zap.String("uuid", uuid),
-			zap.String("routingKey", routingKey),
-			zap.String("exchangeName", exchangeName),
-			zap.String("queueName", queueName),
-		)
-	}
-	producer, err := instance.RegisterProducer(rabbitmq.ProducerRegisterOptions{
-		Exchange: rabbitmq.Exchange{
-			Name:    exchangeName,
-			Type:    "direct",
-			Durable: true,
-		},
-		Queue: rabbitmq.Queue{
-			Name:    queueName,
-			Durable: true,
-		},
-		PublishingOptions: rabbitmq.PublishingOptions{
-			RoutingKey: routingKey,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	ProducerMapping[producer.GetRoutingKey()] = producer.UUID
-	return producer, nil
+func init() {
+	provider.Register(HitokotoFailedMessageCollectEvent())
 }
 
 func checkXDeathCount(ctx context.Context, xDeath []interface{}) int64 {
@@ -84,7 +46,7 @@ func wrapperHeader(header amqp.Table, body []byte) ([]byte, error) {
 }
 
 // HitokotoFailedMessageCollectEvent 处理通知死信
-func HitokotoFailedMessageCollectEvent(instance *rabbitmq.Instance) *rabbitmq.ConsumerRegisterOptions {
+func HitokotoFailedMessageCollectEvent() *rabbitmq.ConsumerRegisterOptions {
 	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
 			Name:    "notification_failed",
@@ -106,7 +68,7 @@ func HitokotoFailedMessageCollectEvent(instance *rabbitmq.Instance) *rabbitmq.Co
 			Tag:        "HitokotoFailedMessageCollectWorker",
 			AckByError: true,
 		},
-		CallFunc: func(ctx context.Context, delivery amqp.Delivery) (err error) {
+		CallFunc: func(ctx rabbitmq.Ctx, delivery amqp.Delivery) (err error) {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			//defer func() {
@@ -142,9 +104,7 @@ func HitokotoFailedMessageCollectEvent(instance *rabbitmq.Instance) *rabbitmq.Co
 				return errors.New("x-first-death-queue is missing")
 			}
 			var producer *rabbitmq.Producer
-			producer, err = getProducer(
-				ctx,
-				instance,
+			producer, err = ctx.GetProducer(
 				OriginalExchangeName.(string),
 				OriginalQueueName.(string),
 				"",
@@ -167,9 +127,7 @@ func HitokotoFailedMessageCollectEvent(instance *rabbitmq.Instance) *rabbitmq.Co
 			} else {
 				logger.Debug("[RabbitMQ.Producer.FailedMessageCollector] 重试次数过多，投递死信桶。")
 				// 丢到死信桶队列（无法恢复）
-				producer, err = getProducer(
-					ctx,
-					instance,
+				producer, err = ctx.GetProducer(
 					"notification_failed",
 					"notification_failed_can",
 					"notification_failed.notification_failed_can",

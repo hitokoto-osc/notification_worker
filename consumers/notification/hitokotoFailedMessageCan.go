@@ -1,13 +1,17 @@
 package notification
 
 import (
-	"context"
+	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
 
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+func init() {
+	provider.Register(HitokotoFailedMessageCanEvent())
+}
 
 // HitokotoFailedMessageCanEvent 处理不可恢复通知死信 —— 发给管理员
 func HitokotoFailedMessageCanEvent() *rabbitmq.ConsumerRegisterOptions {
@@ -32,7 +36,7 @@ func HitokotoFailedMessageCanEvent() *rabbitmq.ConsumerRegisterOptions {
 			Tag:        "HitokotoFailedMessageCollectWorker",
 			AckByError: true,
 		},
-		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
+		CallFunc: func(ctx rabbitmq.Ctx, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Error("[RabbitMQ.Producer.FailedMessageCan] 收到死信：", zap.ByteString("body", delivery.Body))

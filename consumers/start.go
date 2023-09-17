@@ -1,8 +1,8 @@
-package event
+package consumers
 
 import (
 	"github.com/hitokoto-osc/notification-worker/config"
-	"github.com/hitokoto-osc/notification-worker/event/notification"
+	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	jsoniter "github.com/json-iterator/go"
@@ -36,13 +36,10 @@ func InitRabbitMQEvent() {
 
 	// 注册接收器
 	logger.Info("开始注册消息接收器...")
-	instance.RegisterConsumerConfig(*notification.HitokotoFailedMessageCollectEvent(instance))
-	instance.RegisterConsumerConfig(*notification.HitokotoFailedMessageCanEvent())
-	instance.RegisterConsumerConfig(*notification.HitokotoAppendedEvent())
-	instance.RegisterConsumerConfig(*notification.HitokotoReviewedEvent())
-	instance.RegisterConsumerConfig(*notification.HitokotoPollCreatedEvent())
-	instance.RegisterConsumerConfig(*notification.HitokotoPollFinishedEvent())
-	instance.RegisterConsumerConfig(*notification.HitokotoPollDailyReportEvent())
+	options := provider.Get()
+	for _, v := range options {
+		instance.RegisterConsumerConfig(*v)
+	}
 	handleErr(instance.ConsumerSubscribe())
 	logger.Info("已注册消息接收器，开始处理消息。")
 	select {}

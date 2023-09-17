@@ -1,11 +1,11 @@
 package notification
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
@@ -14,6 +14,10 @@ import (
 	"go.uber.org/zap"
 	"strconv"
 )
+
+func init() {
+	provider.Register(HitokotoReviewedEvent())
+}
 
 // HitokotoReviewedEvent 处理一言成功添加事件
 func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
@@ -38,7 +42,7 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			Tag:        "HitokotoReviewedNotificationWorker",
 			AckByError: true,
 		},
-		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
+		CallFunc: func(ctx rabbitmq.Ctx, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("[hitokoto_reviewed] 收到消息:", zap.ByteString("body", delivery.Body))

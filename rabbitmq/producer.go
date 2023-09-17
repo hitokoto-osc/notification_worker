@@ -12,6 +12,8 @@ import (
 type Producer struct {
 	// Producer UUID
 	UUID string
+	// instance is a pointer to Instance that Producer belongs to
+	instance *Instance
 	// Base struct for Producer
 	RabbitMQ *RabbitMQ
 	// The communication channel over connection
@@ -39,7 +41,7 @@ type PublishingOptions struct {
 // on both the publisher and consumer to be able to change the settings only in
 // one place. We can declare those settings on both place to ensure they are
 // same. But this package will not support it.
-func (r *RabbitMQ) NewProducer(e Exchange, q Queue, po PublishingOptions) (*Producer, error) {
+func (r *RabbitMQ) NewProducer(instance *Instance, e Exchange, q Queue, po PublishingOptions) (*Producer, error) {
 
 	if r.Conn() == nil {
 		return nil, errors.WithStack(errors.New("[RabbitMQ.Producer] RabbitMQ Connection is missing"))
@@ -59,6 +61,7 @@ func (r *RabbitMQ) NewProducer(e Exchange, q Queue, po PublishingOptions) (*Prod
 	producer := &Producer{
 		UUID:     uuidInstance.String(),
 		RabbitMQ: r,
+		instance: instance,
 		channel:  channel,
 		session: Session{
 			Exchange:          e,

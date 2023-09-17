@@ -1,10 +1,10 @@
 package notification
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 	"strconv"
 )
+
+func init() {
+	provider.Register(HitokotoPollFinishedEvent())
+}
 
 // HitokotoPollFinishedEvent 一言投票完成事件
 func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
@@ -37,7 +41,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 			Tag:        "HitokotoPollFinishedNotificationWorker",
 			AckByError: true,
 		},
-		CallFunc: func(ctx context.Context, delivery amqp.Delivery) error {
+		CallFunc: func(ctx rabbitmq.Ctx, delivery amqp.Delivery) error {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("[hitokoto_poll_finished]收到消息:", zap.ByteString("body", delivery.Body))

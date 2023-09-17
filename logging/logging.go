@@ -2,7 +2,7 @@ package logging
 
 import (
 	"context"
-	hcontext "github.com/hitokoto-osc/notification-worker/context"
+	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	"go.uber.org/zap"
 )
 
@@ -22,22 +22,22 @@ func NewContext(ctx context.Context, fields ...zap.Field) {
 	if ctx == nil {
 		logger.Panic("context is nil")
 	}
-	hctx, ok := ctx.(hcontext.IContext)
+	c, ok := ctx.(rabbitmq.Ctx)
 	if !ok {
-		logger.Panic("context is not hcontext.IContext")
+		logger.Panic("context is not rabbitmq.Ctx")
 	}
-	hctx.Set(loggerKey, WithContext(ctx).With(fields...))
+	c.Set(loggerKey, WithContext(ctx).With(fields...))
 }
 
 func WithContext(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		return logger
 	}
-	hctx, ok := ctx.(hcontext.IContext)
+	c, ok := ctx.(rabbitmq.Ctx)
 	if !ok {
 		return logger
 	}
-	l := hctx.Get(loggerKey)
+	l := c.Get(loggerKey)
 	ctxLogger, ok := l.(*zap.Logger)
 	if !ok {
 		return logger

@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"context"
 	"github.com/cockroachdb/errors"
-	hcontext "github.com/hitokoto-osc/notification-worker/context"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
 	"time"
@@ -16,12 +15,14 @@ type Consumer struct {
 	// Producer UUID
 	UUID     string
 	RabbitMQ *RabbitMQ
+	// The instance that this producer belongs to
+	instance *Instance
 	// The communication channel over connection
 	channel *amqp.Channel
 	// All deliveries from server will send to this channel
 	deliveries <-chan amqp.Delivery
 	// This handler will be called when a
-	handler func(ctx context.Context, delivery amqp.Delivery) error
+	handler func(ctx Ctx, delivery amqp.Delivery) error
 	// A notifiyng channel for publishings
 	// will be used for sync. between close channel and consume handler
 	done chan error
@@ -57,7 +58,7 @@ func (c *Consumer) Deliveries() <-chan amqp.Delivery {
 
 // NewConsumer is a constructor for consumer creation
 // Accepts Exchange, Queue, BindingOptions and ConsumerOptions
-func (r *RabbitMQ) NewConsumer(e Exchange, q Queue, bo BindingOptions, co ConsumerOptions) (*Consumer, error) {
+func (r *RabbitMQ) NewConsumer(instance *Instance, e Exchange, q Queue, bo BindingOptions, co ConsumerOptions) (*Consumer, error) {
 	if r.conn == nil {
 		return nil, errors.WithStack(errors.New("[RabbitMQ.Consumer] connection is nil"))
 	}
@@ -75,6 +76,7 @@ func (r *RabbitMQ) NewConsumer(e Exchange, q Queue, bo BindingOptions, co Consum
 	c := &Consumer{
 		UUID:     uuidInstance.String(),
 		RabbitMQ: r,
+		instance: instance,
 		channel:  channel,
 		done:     make(chan error),
 		session: Session{
@@ -181,7 +183,7 @@ func (c *Consumer) Register() error {
 
 // Consume accepts a handler function for every message streamed from RabbitMq
 // will be called within this handler func
-func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Delivery) error) error {
+func (c *Consumer) Consume(handler func(ctx Ctx, delivery amqp.Delivery) error) error {
 	co := c.session.ConsumerOptions
 	q := c.session.Queue
 	// Exchange bound to Queue, starting Consume
@@ -212,20 +214,20 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 			select {
 			case delivery := <-c.deliveries:
 				go func(delivery amqp.Delivery) {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Hour) // 设置为 1 小时执行超时（照顾失败策略）
+					ctxWithDeadline, cancel := context.WithTimeout(context.Background(), time.Hour) // 设置为 1 小时执行超时（照顾失败策略）
 					defer cancel()
-					u4, _ := uuid.NewRandom()
-					hctx := hcontext.NewFromContext(ctx)
-					logging.NewContext(hctx, zap.String("traceID", u4.String()))
-					logging.NewContext(hctx, zap.String("consumerTag", co.Tag))
-					logger := logging.WithContext(hctx)
+					u := uuid.NewString()
+					rCtx := NewCtxFromContext(ctxWithDeadline, c.instance)
+					logging.NewContext(rCtx, zap.String("traceID", u))
+					logging.NewContext(rCtx, zap.String("consumerTag", co.Tag))
+					logger := logging.WithContext(rCtx)
 					defer logger.Sync()
 					done := make(chan bool)
 					go func() {
 						defer func() {
 							done <- true
 						}()
-						if e := c.handler(hctx, delivery); e != nil {
+						if e := c.handler(rCtx, delivery); e != nil {
 							logger.Error(
 								"[RabbitMQ.Consumer] Occur a error while consuming a message. ",
 								zap.Error(e),
@@ -255,10 +257,10 @@ func (c *Consumer) Consume(handler func(ctx context.Context, delivery amqp.Deliv
 					}()
 
 					select {
-					case <-ctx.Done():
+					case <-rCtx.Done():
 						logger.Error(
 							"[RabbitMQ.Consumer] Timeout exceeded.",
-							zap.Error(ctx.Err()),
+							zap.Error(rCtx.Err()),
 							zap.ByteString("body", delivery.Body),
 						)
 						return
@@ -285,7 +287,7 @@ func (c *Consumer) QOS(messageCount int) error {
 
 // Get ConsumeMessage accepts a handler function and only consumes one message
 // stream from RabbitMq
-func (c *Consumer) Get(ctx context.Context, handler func(ctx context.Context, delivery amqp.Delivery) error) error {
+func (c *Consumer) Get(ctx Ctx, handler func(ctx Ctx, delivery amqp.Delivery) error) error {
 	defer c.RabbitMQ.log.Sync()
 	co := c.session.ConsumerOptions
 	q := c.session.Queue

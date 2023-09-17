@@ -7,7 +7,7 @@ import (
 
 	// 项目内文件
 	"github.com/hitokoto-osc/notification-worker/config"
-	"github.com/hitokoto-osc/notification-worker/event"
+	"github.com/hitokoto-osc/notification-worker/consumers"
 )
 
 func init() {
@@ -24,6 +24,6 @@ func main() {
 		zap.String("build_time", config.BuildTime),
 		zap.String("runtime", runtime.Version()),
 	)
-	go event.InitRabbitMQEvent()
+	go consumers.InitRabbitMQEvent()
 	select {} // 堵塞方法
 }

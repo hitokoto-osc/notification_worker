@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"context"
 	"github.com/cockroachdb/errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -36,7 +35,7 @@ type ConsumerRegisterOptions struct {
 	Queue           Queue
 	BindingOptions  BindingOptions
 	ConsumerOptions ConsumerOptions
-	CallFunc        func(ctx context.Context, delivery amqp.Delivery) error
+	CallFunc        func(ctx Ctx, delivery amqp.Delivery) error
 }
 
 // RegisterConsumerConfig register a consumer config to queue
@@ -57,7 +56,7 @@ func (r *Instance) ConsumerSubscribe() error {
 
 // RegisterConsumer register a consumer
 func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
-	consumer, err := r.RabbitMQ.NewConsumer(options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
+	consumer, err := r.RabbitMQ.NewConsumer(r, options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ type ProducerRegisterOptions struct {
 
 // RegisterProducer register a producer
 func (r *Instance) RegisterProducer(options ProducerRegisterOptions) (*Producer, error) {
-	producer, err := r.RabbitMQ.NewProducer(options.Exchange, options.Queue, options.PublishingOptions)
+	producer, err := r.RabbitMQ.NewProducer(r, options.Exchange, options.Queue, options.PublishingOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func (r *Instance) RegisterProducer(options ProducerRegisterOptions) (*Producer,
 	return producer, nil
 }
 
-// GetConsumer get a exist consumer by uuid
+// GetConsumer get an exist consumer by uuid
 func (r *Instance) GetConsumer(uuid string) (*Consumer, bool) {
 	for _, v := range r.Consumers {
 		if v.UUID == uuid {
@@ -102,7 +101,7 @@ func (r *Instance) GetConsumer(uuid string) (*Consumer, bool) {
 	return nil, false
 }
 
-// GetProducer get a exist producer by uuid
+// GetProducer get an exist producer by uuid
 func (r *Instance) GetProducer(uuid string) (*Producer, bool) {
 	for i, v := range r.Producers {
 		if v.UUID == uuid {
