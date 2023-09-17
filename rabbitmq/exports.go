@@ -1,8 +1,12 @@
 package rabbitmq
 
 import (
+	"context"
 	"github.com/cockroachdb/errors"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"golang.org/x/sync/errgroup"
+	"sync"
+	"time"
 )
 
 type Instance struct {
@@ -45,11 +49,29 @@ func (r *Instance) RegisterConsumerConfig(options ConsumerRegisterOptions) {
 
 // ConsumerSubscribe subscribe consumerOptionsList
 func (r *Instance) ConsumerSubscribe() error {
+	return r.ConsumerSubscribeWithTimeout(5 * time.Minute) // 默认超时时间为 5 分钟
+}
+
+func (r *Instance) ConsumerSubscribeWithTimeout(timeout time.Duration) error {
+	c := context.Background()
+	if timeout > 0 { // 如果超时时间大于 0，则使用超时上下文
+		var cancel context.CancelFunc
+		c, cancel = context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+	}
+	eg, _ := errgroup.WithContext(c)
 	for _, v := range r.consumersOptions {
-		err := r.RegisterConsumer(v)
-		if err != nil {
-			return errors.WithMessagef(err, "consumer Tag: %v", v.ConsumerOptions.Tag)
-		}
+		co := v // copy
+		eg.Go(func() error {
+			err := r.RegisterConsumer(co)
+			if err != nil {
+				return errors.WithMessagef(err, "consumer Tag: %v", co.ConsumerOptions.Tag)
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return errors.Wrap(err, "consumer subscribe error")
 	}
 	return nil
 }
@@ -60,8 +82,11 @@ func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
 	if err != nil {
 		return err
 	}
-	err = consumer.Consume(options.CallFunc)
-	if err != nil {
+	var e = make(chan error)
+	go func() {
+		e <- consumer.Consume(options.CallFunc)
+	}()
+	if err = <-e; err != nil {
 		return err
 	}
 	r.Consumers.Add(ConsumerUnit{
@@ -93,40 +118,29 @@ func (r *Instance) RegisterProducer(options ProducerRegisterOptions) (*Producer,
 
 // GetConsumer get an exist consumer by uuid
 func (r *Instance) GetConsumer(uuid string) (*Consumer, bool) {
-	for _, v := range r.Consumers {
-		if v.UUID == uuid {
-			return v.Consumer, true
-		}
-	}
-	return nil, false
+	return r.Consumers.Get(uuid)
 }
 
 // GetProducer get an exist producer by uuid
 func (r *Instance) GetProducer(uuid string) (*Producer, bool) {
-	for i, v := range r.Producers {
-		if v.UUID == uuid {
-			if !v.Producer.channel.IsClosed() {
-				return v.Producer, true
-			}
-			// Remove from list
-			r.Producers = append(r.Producers[:i], r.Producers[i+1:]...)
-		}
-	}
-	return nil, false
+	return r.Producers.Get(uuid)
 }
 
 // registerChannelRecover is used to recover channel after channel closed
 func (r *Instance) registerChannelRecover() {
 	go func() {
 		for _ = range channelShouldUpdateConn { // ignore data because of notification channel(with useless data)
-			r.Consumers.UpdateInstant(r.RabbitMQ)
-			r.Producers.UpdateInstant(r.RabbitMQ)
+			r.Consumers.UpdateInstance(r.RabbitMQ)
+			r.Producers.UpdateInstance(r.RabbitMQ)
 		}
 	}()
 }
 
 // ConsumerList defines a ConsumerUnit List
-type ConsumerList []ConsumerUnit
+type ConsumerList struct {
+	list []ConsumerUnit
+	sync.RWMutex
+}
 
 // ConsumerUnit defines a Consumer unit
 type ConsumerUnit struct {
@@ -136,18 +150,46 @@ type ConsumerUnit struct {
 
 // Add a unit to the list
 func (p *ConsumerList) Add(unit ConsumerUnit) {
-	*p = append(*p, unit)
+	p.Lock()
+	defer p.Unlock()
+	p.list = append(p.list, unit)
 }
 
-// UpdateInstant update rabbitmq connection(also called instant)
-func (p *ConsumerList) UpdateInstant(rmq *RabbitMQ) {
-	for _, unit := range *p {
+// UpdateInstance update rabbitmq connection(also called instant)
+func (p *ConsumerList) UpdateInstance(rmq *RabbitMQ) {
+	p.Lock()
+	defer p.Unlock()
+	for _, unit := range p.list {
 		unit.Consumer.RabbitMQ = rmq
 	}
 }
 
+func (p *ConsumerList) Get(uuid string) (*Consumer, bool) {
+	p.RLock()
+	defer p.RUnlock()
+	for _, v := range p.list {
+		if v.UUID == uuid {
+			return v.Consumer, true
+		}
+	}
+	return nil, false
+}
+
+func (p *ConsumerList) Remove(uuid string) {
+	p.Lock()
+	defer p.Unlock()
+	for i, v := range p.list {
+		if v.UUID == uuid {
+			p.list = append(p.list[:i], p.list[i+1:]...)
+		}
+	}
+}
+
 // ProducerList defines a ProducerUnit List
-type ProducerList []ProducerUnit
+type ProducerList struct {
+	list []ProducerUnit
+	sync.RWMutex
+}
 
 // ProducerUnit defines a Producer unit
 type ProducerUnit struct {
@@ -155,14 +197,42 @@ type ProducerUnit struct {
 	Producer *Producer
 }
 
-// Add add a unit to the list
+// Add a unit to the list
 func (p *ProducerList) Add(unit ProducerUnit) {
-	*p = append(*p, unit)
+	p.Lock()
+	defer p.Unlock()
+	p.list = append(p.list, unit)
 }
 
-// UpdateInstant update rabbitmq connection(also called instant)
-func (p *ProducerList) UpdateInstant(rmq *RabbitMQ) {
-	for _, unit := range *p {
+// UpdateInstance update rabbitmq connection(also called instant)
+func (p *ProducerList) UpdateInstance(rmq *RabbitMQ) {
+	p.Lock()
+	defer p.Unlock()
+	for _, unit := range p.list {
 		unit.Producer.RabbitMQ = rmq
+	}
+}
+
+func (p *ProducerList) Get(uuid string) (*Producer, bool) {
+	p.RLock()
+	defer p.RUnlock()
+	for _, v := range p.list {
+		if v.UUID == uuid {
+			if !v.Producer.channel.IsClosed() { // 如果通道未关闭，则返回
+				return v.Producer, true
+			}
+			p.Remove(uuid)
+		}
+	}
+	return nil, false
+}
+
+func (p *ProducerList) Remove(uuid string) {
+	p.Lock()
+	defer p.Unlock()
+	for i, v := range p.list {
+		if v.UUID == uuid {
+			p.list = append(p.list[:i], p.list[i+1:]...)
+		}
 	}
 }

@@ -218,8 +218,10 @@ func (c *Consumer) Consume(handler func(ctx Ctx, delivery amqp.Delivery) error) 
 					defer cancel()
 					u := uuid.NewString()
 					rCtx := NewCtxFromContext(ctxWithDeadline, c.instance)
-					logging.NewContext(rCtx, zap.String("traceID", u))
-					logging.NewContext(rCtx, zap.String("consumerTag", co.Tag))
+					logging.NewContext(rCtx,
+						zap.String("trace_id", u),
+						zap.String("consumer_tag", co.Tag),
+					)
 					logger := logging.WithContext(rCtx)
 					defer logger.Sync()
 					done := make(chan bool)
