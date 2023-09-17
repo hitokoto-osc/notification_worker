@@ -1,9 +1,9 @@
 package alicloud
 
 import (
+	rpc "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	dm "github.com/alibabacloud-go/dm-20151123/v2/client"
-	rpc "github.com/alibabacloud-go/tea-rpc/client"
-	util "github.com/alibabacloud-go/tea-utils/service"
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/hitokoto-osc/notification-worker/config"
 	"github.com/hitokoto-osc/notification-worker/mail/driver"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
@@ -28,15 +28,15 @@ type DM struct {
 }
 
 func NewAliCloudDM() *DM {
-	return &DM{
-		accessKeyId:  config.Aliyun().DM().AccessKeyId(),
-		accessSecret: config.Aliyun().DM().AccessKeySecret(),
-		endpoint:     config.Aliyun().DM().Endpoint(),
-		regionID:     config.Aliyun().RegionId(),
-	}
+	return &DM{}
 }
 
 func (t *DM) Register() (mailer.Sender, error) {
+	t.accessKeyId = config.Aliyun().DM().AccessKeyId()
+	t.accessSecret = config.Aliyun().DM().AccessKeySecret()
+	t.endpoint = config.Aliyun().DM().Endpoint()
+	t.regionID = config.Aliyun().RegionId()
+
 	c := new(rpc.Config)
 	c.SetAccessKeyId(t.accessKeyId).
 		SetAccessKeySecret(t.accessSecret).
