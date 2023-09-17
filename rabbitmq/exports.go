@@ -117,18 +117,16 @@ func (r *Instance) ConsumerSubscribeWithTimeout(timeout time.Duration) error {
 
 // RegisterConsumer register a consumer
 func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
-	var consumer *Consumer
-	var e = make(chan error)
-	go func() {
-		var err error
-		consumer, err = r.RabbitMQ.NewConsumer(r, options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
-		if err != nil {
-			e <- err
-			return
-		}
-		e <- consumer.Consume(options.CallFunc)
-	}()
-	if err := <-e; err != nil {
+	var (
+		consumer *Consumer
+		err      error
+	)
+	consumer, err = r.RabbitMQ.NewConsumer(r, options.Exchange, options.Queue, options.BindingOptions, options.ConsumerOptions)
+	if err != nil {
+		return err
+	}
+	err = consumer.Consume(options.CallFunc)
+	if err != nil {
 		return err
 	}
 	r.Consumers.Add(ConsumerUnit{

@@ -73,14 +73,15 @@ func (r *RabbitMQ) NewProducer(instance *Instance, e Exchange, q Queue, po Publi
 
 // HandleError register the recover loop against channel closed
 func (p *Producer) HandleError() {
+	logger := p.RabbitMQ.log
 	go func() {
-	loop:
-		for {
-			select {
-			case e := <-p.channel.NotifyClose(make(chan *amqp.Error)):
-				p.RabbitMQ.log.Errorf("[RabbitMQ] Channel：%+v \n遇到问题已关闭，错误原因：%v", p.session, e.Error())
-				break loop
+		for e := range p.channel.NotifyClose(make(chan *amqp.Error)) {
+			if e == nil { // channel closed by user
+				logger.Infof("[RabbitMQ] 优雅退出：Channel %s 保活方法已停止。", p.session.PublishingOptions.Tag)
+				break
 			}
+			logger.Errorf("[RabbitMQ] Channel：%+v \n遇到问题已关闭，错误原因：%v", p.session, e.Error())
+			break
 		}
 	}()
 }
