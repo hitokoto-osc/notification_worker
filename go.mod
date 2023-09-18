@@ -26,8 +26,11 @@ require (
 	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
 	github.com/aliyun/credentials-go v1.1.2 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/flosch/pongo2/v6 v6.0.0 // indirect
+	github.com/samber/lo v1.38.1 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.10.0 // indirect
 )
 

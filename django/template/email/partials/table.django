@@ -1,0 +1,3 @@
+<div class="table">
+{% block table_content %}{% endblock %}
+</div>

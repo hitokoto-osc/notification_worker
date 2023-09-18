@@ -1,0 +1,20 @@
+<table class="action" align="{{ button_align }}" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr>
+        <td align="{{ button_align }}">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                    <td align="{{ button_align }}">
+                        <table border="0" cellpadding="0" cellspacing="0" role="presentation">
+                            <tr>
+                                <td>
+                                    <a href="{{ button_url }}" class="button button-{{ button_color }}" target="_blank"
+                                        rel="noopener">{{ button_text }}</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
