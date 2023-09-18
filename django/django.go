@@ -15,14 +15,14 @@ var (
 )
 
 // init initializes pongo2 template loader.
-// It loads templates from embededFS and local filesystem.
+// It loads templates from embeddedFS and local filesystem.
 // It also loads globals from globalsCtxProviders.
 func init() {
 	defer zap.L().Sync()
 	var err error
 	tplPublicDir := path.Join(must[string](executablePath), "resources/")
 	loader, err := pongo2.NewHttpFileSystemLoader(http.FS(priorityFS{
-		embededFS,
+		embeddedFS,
 		os.DirFS(tplPublicDir),
 	}), "./template")
 	if err != nil {
