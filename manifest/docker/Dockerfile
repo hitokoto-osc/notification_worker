@@ -11,7 +11,7 @@ RUN apk add alpine-conf tzdata && \
 
 ENV WORKDIR                                           /app
 VOLUME                                                $WORKDIR/data
-ADD ./config.example.yml                              $WORKDIR/config.yml
+ADD ./config.example.yml                              $WORKDIR/data/config.example.yml
 ADD ./notification-worker                             $WORKDIR/notification-worker
 RUN chmod +x $WORKDIR/notification-worker
 
