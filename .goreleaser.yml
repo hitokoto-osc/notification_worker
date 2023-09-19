@@ -43,10 +43,21 @@ snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
+  groups:
+  - title: "✨ Features"
+    regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+    order: 0
+  - title: "🐛 Bug fixes"
+    regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+    order: 1
+  - title: "📦 Code Refactoring"
+    regexp: '^.*?refactor(\([[:word:]]+\))??!?:.+$'
+    order: 2
+  - title: "🚀 Performance Improvements"
+    regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+    order: 3
+  - title: "♻️ Others"
+    order: 999
 dockers:
   - goos: linux
     # GOARCH of the built binaries/packages that should be used.
