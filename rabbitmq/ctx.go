@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type ctx struct {
@@ -62,8 +63,9 @@ func (c *ctx) GetProducer(exchangeName, queueName, routingKey string) (*Producer
 
 func (c *ctx) GetProducerWithOptions(options ProducerRegisterOptions) (*Producer, error) {
 	logger := logging.WithContext(c)
+	defer logger.Sync()
 	if options.PublishingOptions.RoutingKey == "" {
-		options.PublishingOptions.RoutingKey = options.Exchange.Name + "." + options.Queue.Name
+		options.PublishingOptions.RoutingKey = strings.Trim(options.Exchange.Name+"."+options.Queue.Name, ".")
 	}
 	uuid, ok := producersMap[options.PublishingOptions.RoutingKey]
 	if ok {
