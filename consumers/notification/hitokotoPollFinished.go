@@ -2,13 +2,15 @@ package notification
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
+	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
+	"github.com/hitokoto-osc/notification-worker/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"strconv"
@@ -50,61 +52,50 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 			if err != nil {
 				return err
 			}
-			// 解析 ISO 时间
-			updatedAt := carbon.Parse(message.UpdatedAt)
 
 			// 处理 JSON 数据
-			var result = struct {
-				StatusText string
-				MethodText string
-			}{}
-			if message.Status == 200 {
-				result.StatusText = "入库"
-			} else if message.Status == 201 {
-				result.StatusText = "驳回"
-			} else if message.Status == 202 {
-				result.StatusText = "需要修改"
-			} else {
-				result.StatusText = "未知状态"
+			var (
+				method string
+				status string
+			)
+			switch message.Status {
+			case 200:
+				status = "入库"
+			case 201:
+				status = "驳回"
+			case 202:
+				status = "需要修改"
+			default:
+				status = "未知状态"
 			}
-			if message.Method == 1 {
-				result.MethodText = "批准"
-			} else if message.Method == 2 {
-				result.MethodText = "驳回"
-			} else if message.Method == 3 {
-				result.MethodText = "需要修改"
-			} else {
-				result.MethodText = "未知操作"
+			switch message.Method {
+			case 1:
+				method = "批准"
+			case 2:
+				method = "驳回"
+			case 3:
+				method = "需要修改"
+			default:
+				method = "未知操作"
 			}
 
-			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>投票（id: %d）于 %s 由系统自动处理。</p>
-<p>句子信息：</p>
-<ul>
-  <li>内容：%s</li>
-  <li>来源：%s</li>
-  <li>作者：%s</li>
-  <li>提交者： %s</li>
-</ul>
-<p>处理结果为：<strong>%s</strong>。
-您在本次投票中投了 <b>%s</b> %s 票。如果您想了解投票的详细信息（包括“投票数据”），可以查看“审核员中心”的“结果与记录”页。<br />
-如果您觉得消息提醒过于频繁，可以在“用户设置”页面关闭“投票结果通知”选项。</p>
-<br />
-<p>感谢您的支持，<br />
-萌创团队 - 一言项目组<br />
-%s</p>`,
-				message.UserName,
-				message.Id,
-				updatedAt.Format("Y-m-d H:i:s"),
-				message.Hitokoto,
-				message.From,
-				message.FromWho,
-				message.Creator,
-				result.StatusText,
-				result.MethodText,
-				strconv.Itoa(message.Point), // 直接转换成字符串之后再插入
-				carbon.Now().Format("Y 年 n 月 j 日"),
-			)
+			html, err := django.RenderTemplate("email/poll_finished", django.Context{
+				"username":    message.UserName,
+				"poll_id":     message.Id,
+				"operated_at": carbon.Parse(message.UpdatedAt).Format("Y-m-d H:i:s"),
+				"hitokoto":    message.Hitokoto,
+				"from":        message.From,
+				"from_who":    message.FromWho,
+				"creator":     message.Creator,
+				"type":        utils.FormatHitokotoType(message.Type),
+				"status":      status,
+				"method":      method,
+				"point":       strconv.Itoa(message.Point),
+				"now":         carbon.Now().Format("Y 年 n 月 j 日"),
+			})
+			if err != nil {
+				return errors.Wrap(err, "无法渲染模板")
+			}
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,
 				Mail: mailer.Mail{

@@ -2,14 +2,15 @@ package notification
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
+	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
+	"github.com/hitokoto-osc/notification-worker/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"strconv"
@@ -58,40 +59,29 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			}
 
 			// 处理数据
-			var reviewResult = &struct {
-				StatusText string
-				Desc       string
-				OperatedAt carbon.Carbon
-			}{}
-			reviewResult.OperatedAt = carbon.Parse(message.OperatedAt)
-			if err != nil {
-				return err
-			}
+			var reviewResult string
 			if message.Status == 200 { // 只可能通过或者驳回，目前。
-				reviewResult.StatusText = "通过"
-				reviewResult.Desc = "。"
+				reviewResult = "通过"
 			} else {
-				reviewResult.StatusText = "驳回"
-				reviewResult.Desc = "。如果您对审核结果有疑问，您可以在“提交历史”中点击“查看详情”，再点击“查看审核意见”查看审核意见。如果对处理结果不满意的话，可以发信至 <code>i@loli.online</code> 联系我们（备注句子 UUID）。"
+				reviewResult = "驳回"
 			}
-			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>您于 %s 提交的句子： <b>%s</b> —— %s 「%s」， 已经审核完成。</p>
-<p>审核结果为：<strong>%s</strong>，审核员 %s (%d) 于 %s 操作审核%s</p>
-<br />
-<p>感谢您的支持，<br />
-萌创团队 - 一言项目组<br />
-%s</p>`,
-				message.Creator,
-				carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
-				message.Hitokoto, message.FromWho,
-				message.From,
-				reviewResult.StatusText,
-				message.ReviewerName,
-				message.ReviewerUid,
-				reviewResult.OperatedAt.Format("Y-m-d H:i:s"),
-				reviewResult.Desc,
-				carbon.Now().Format("Y 年 n 月 j 日"),
-			)
+
+			html, err := django.RenderTemplate("email/hitokoto_reviewed", django.Context{
+				"username":      message.Creator,
+				"created_at":    carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
+				"hitokoto":      message.Hitokoto,
+				"from_who":      message.FromWho,
+				"from":          message.From,
+				"type":          utils.FormatHitokotoType(message.Type),
+				"reviewer":      message.ReviewerName,
+				"reviewer_uid":  message.ReviewerUid,
+				"reviewed_at":   carbon.Parse(message.OperatedAt).Format("Y-m-d H:i:s"),
+				"review_result": reviewResult,
+				"now":           carbon.Now().Format("Y-m-d H:i:s"),
+			})
+			if err != nil {
+				return errors.Wrap(err, "渲染模板失败")
+			}
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,
 				Mail: mailer.Mail{

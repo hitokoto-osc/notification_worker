@@ -2,13 +2,15 @@ package notification
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
+	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
+	"github.com/hitokoto-osc/notification-worker/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
@@ -49,34 +51,21 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 			if err != nil {
 				return err
 			}
-			// 解析 ISO 时间
-			createdAt := carbon.Parse(message.CreatedAt)
+
+			html, err := django.RenderTemplate("email/poll_created", django.Context{
+				"username":   message.UserName,
+				"created_at": carbon.Parse(message.CreatedAt).Format("Y-m-d H:i:s"),
+				"poll_id":    message.Id,
+				"hitokoto":   message.Hitokoto,
+				"from":       message.From,
+				"from_who":   message.FromWho,
+				"type":       utils.FormatHitokotoType(message.Type),
+				"creator":    message.Creator,
+				"now":        carbon.Now().Format("Y 年 n 月 j 日"),
+			})
 			if err != nil {
-				return err
+				return errors.Wrap(err, "无法渲染模板")
 			}
-			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>我们在 %s 创建了一则新投票（id: %d）。</p>
-<p>句子信息：</p>
-<ul>
-  <li>内容：%s</li>
-  <li>来源：%s</li>
-  <li>作者：%s</li>
-  <li>提交者： %s</li>
-</ul>
-<p>请您尽快<a href="https://h5.poll.hitokoto.cn/poll" target="_blank">审核</a>。如果您觉得消息提醒过于频繁，可以在“用户设置”页面关闭“投票创建通知”选项。</p>
-<br />
-<p>感谢您的支持，<br />
-萌创团队 - 一言项目组<br />
-%s</p>`,
-				message.UserName,
-				createdAt.Format("Y-m-d H:i:s"),
-				message.Id,
-				message.Hitokoto,
-				message.From,
-				message.FromWho,
-				message.Creator,
-				carbon.Now().Format("Y 年 n 月 j 日"),
-			)
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,
 				Mail: mailer.Mail{

@@ -1,0 +1,19 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>您于 {{ created_at }} 提交 <b>{{ type }}</b> 分类的句子： </p>
+<br />
+<p style="text-align: center;"><b>{{ hitokoto }}</b></p>
+<p style="text-align: right; font-size: 13px;"> —— {{ from_who }} 「{{ from }}」</p>
+<br />
+<p>于 {{ reviewed_at }} 审核完成，结果为：<b>{{ review_result }}</b>。<br>
+由审核员 <b>{{ reviewer }}</b>（{{ reviewer_uid }}） 操作审核。</p>
+{% if review_result == "驳回" %}
+<p>
+您可以在“提交历史”中点击 “查看详情” — “查看审核意见” 查看审核意见。<br />
+若对结果有疑惑，可以发信至 <code>i@loli.online</code>（或在工单系统） 联系我们（备注句子 UUID）。
+</p>
+{% endif %}
+{% endblock %}
+

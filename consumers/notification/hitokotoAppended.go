@@ -2,13 +2,15 @@ package notification
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
+	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
+	"github.com/hitokoto-osc/notification-worker/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"strconv"
@@ -55,19 +57,18 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 			if err != nil {
 				return err
 			}
-			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>您于 %s 提交的句子： <b>%s</b> —— %s 「%s」， 已经进入审核队列了。</p>
-<p>我们会尽快处理您的句子。当审核结果出来时，我们将会通过邮件通知您。</p>
-<br />
-<p>感谢您的支持，<br />
-萌创团队 - 一言项目组<br />
-%s</p>`,
-				message.Creator,
-				carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
-				message.Hitokoto, message.FromWho,
-				message.From,
-				carbon.Now().Format("Y 年 n 月 j 日"),
-			)
+			html, err := django.RenderTemplate("email/hitokoto_appended", django.Context{
+				"username":   message.Creator,
+				"created_at": carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
+				"hitokoto":   message.Hitokoto,
+				"from":       message.From,
+				"from_who":   message.FromWho,
+				"type":       utils.FormatHitokotoType(message.Type),
+				"now":        carbon.Now().Format("Y 年 n 月 j 日"),
+			})
+			if err != nil {
+				return errors.Wrap(err, "渲染模板失败")
+			}
 
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,

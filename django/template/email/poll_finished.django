@@ -1,0 +1,20 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>投票（{{ poll_id }}）于 {{ operated_at }} 由系统自动处理。 </p>
+<p style="font-size: 14px;">
+    内容：{{ hitokoto }}<br />
+    来源：{{ from }} <br />
+    作者：{{ fromWho|default:"未填写" }} <br />
+    分类：{{ type }} <br />
+    提交者： {{ creator }} <br />
+</p>
+<p>处理结果为：<b>{{ status }}</b>。您在本次投票中投了 <b>{{ method }}</b> {{ point }} 票。<br />
+您可以在 <u>审核员中心 - 投票记录</u> 中查看投票详情。</p>
+
+{% endblock %}
+
+{% block content_after %}
+{% include "email/partials/subcopy.django" with subcopy_content="<p> 如果您觉得消息提醒过于频繁，可以在 <u>用户设置</u> 页面关闭 <u>投票结果通知</u> 选项。</p>" %}
+{% endblock %}

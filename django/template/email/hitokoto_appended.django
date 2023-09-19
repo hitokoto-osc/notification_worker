@@ -1,0 +1,13 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>您于 {{ created_at }} 提交 <b>{{ type }}</b> 分类的句子： </p>
+<br />
+<p style="text-align: center;"><b>{{ hitokoto }}</b></p>
+<p style="text-align: right; font-size: 13px;"> —— {{ from_who }} 「{{ from }}」</p>
+<br />
+<p>我们已经收到了，请您耐心等候审核。<br />
+当审核结果出来时，我们将会通过邮件通知您。</p>
+{% endblock %}
+

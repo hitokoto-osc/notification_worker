@@ -1,0 +1,19 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>系统于 {{ created_at }} 创建了一则新投票（{{ poll_id }}）： </p>
+<p style="font-size: 14px;">
+    内容：{{ hitokoto }}<br />
+    来源：{{ from }} <br />
+    作者：{{ fromWho|default:"未填写" }} <br />
+    分类：{{ type }} <br />
+    提交者： {{ creator }} <br />
+</p>
+<p>请您尽快<a href="https://reviewer.hitokoto.cn/dashboard/do_review" target="_blank">审核</a>。</p>
+
+{% endblock %}
+
+{% block content_after %}
+{% include "email/partials/subcopy.django" with subcopy_content="<p> 如果您觉得消息提醒过于频繁，可以在 <u>用户设置</u> 页面关闭 <u>投票创建通知</u> 选项。</p>" %}
+{% endblock %}

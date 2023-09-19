@@ -2,20 +2,20 @@ package notification
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
+	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func init() {
-	provider.Register(HitokotoPollCreatedEvent())
+	provider.Register(HitokotoPollDailyReportEvent())
 }
 
 // HitokotoPollDailyReportEvent 每日审核员报告事件
@@ -50,58 +50,35 @@ func HitokotoPollDailyReportEvent() *rabbitmq.ConsumerRegisterOptions {
 			if err != nil {
 				return err
 			}
-			// 解析 ISO 时间
-			CreatedAt := carbon.Parse(message.CreatedAt)
+
+			html, err := django.RenderTemplate("email/poll_daily_report", django.Context{
+				"username":   message.UserName,
+				"created_at": carbon.Parse(message.CreatedAt).Format("Y-m-d H:i:s"),
+				"system": django.Context{
+					"total":       message.SystemInformation.Total,
+					"processed":   message.SystemInformation.ProcessTotal,
+					"approved":    message.SystemInformation.ProcessAccept,
+					"rejected":    message.SystemInformation.ProcessReject,
+					"need_modify": message.SystemInformation.ProcessNeedEdited,
+				},
+				"user": django.Context{
+					"polled": django.Context{
+						"total":       message.UserInformation.Polled.Total,
+						"approve":     message.UserInformation.Polled.Accept,
+						"reject":      message.UserInformation.Polled.Reject,
+						"need_modify": message.UserInformation.Polled.NeedEdited,
+					},
+					"wait_for_polling":   message.UserInformation.WaitForPolling,
+					"waiting_for_others": message.UserInformation.Waiting,
+					"approved":           message.UserInformation.Accepted,
+					"rejected":           message.UserInformation.Rejected,
+					"need_modify":        message.UserInformation.InNeedEdited,
+				},
+			})
+
 			if err != nil {
-				return err
+				return errors.Wrap(err, "无法渲染模板")
 			}
-
-			html := fmt.Sprintf(`<h2>您好，%s。</h2>
-<p>今日份的投票报告制作好了，请您过目！<br />
-统计时间：%s。
-</p>
-
-<p>此时平台仍有 <b>%s</b> 个句子处于“投票中”队列；在过去 24 小时中，发生了这些变化：<br />
-平台处理了 %s 个投票，其中：
-<ul>
-  <li>入库：%s</li>
-  <li>驳回：%s</li>
-  <li>需要修改：%s</li>
-</ul>
-您参与了 %s 个投票，其中：
-<ul>
-  <li>等待处理：%s (需要其余审核员参与投票)</li>
-  <li>已入库：%s</li>
-  <li>已驳回：%s</li>
-  <li>需要修改：%s</li>
-</ul>
-<p>在参与的投票中，您对 %s 个投票选择了“批准”，对 %s 个投票选择了“驳回”，对 %s 个投票选择了“需要修改”。<br />
-此时，您还有 <strong>%s</strong> 个投票需要处理。</p>
-
-<p>感谢您的付出，一言因你而焕发生机。<br/>
-“生命从无中来，到无中去，每个人都处于‘上场——谢幕’这样一个循环中。这个循环不是悲伤，不是无意义，意义就在这过程中；生命之所以有趣，就在于过程中的体验和收获。”<br />
-以此共勉。</p>
-<br />
-<p>萌创团队 - 一言项目组<br />
-%s</p>`,
-				message.UserName,
-				CreatedAt.Format("Y-m-d H:i:s"),
-				strconv.Itoa(message.SystemInformation.Total),
-				strconv.Itoa(message.SystemInformation.ProcessTotal),
-				strconv.Itoa(message.SystemInformation.ProcessAccept),
-				strconv.Itoa(message.SystemInformation.ProcessReject),
-				strconv.Itoa(message.SystemInformation.ProcessNeedEdited),
-				strconv.Itoa(message.UserInformation.Polled.Total),
-				strconv.Itoa(message.UserInformation.Waiting),
-				strconv.Itoa(message.UserInformation.Accepted),
-				strconv.Itoa(message.UserInformation.Rejected),
-				strconv.Itoa(message.UserInformation.InNeedEdited),
-				strconv.Itoa(message.UserInformation.Polled.Accept),
-				strconv.Itoa(message.UserInformation.Polled.Reject),
-				strconv.Itoa(message.UserInformation.Polled.NeedEdited),
-				strconv.Itoa(message.UserInformation.WaitForPolling),
-				carbon.Now().Format("Y 年 n 月 j 日"),
-			)
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,
 				Mail: mailer.Mail{

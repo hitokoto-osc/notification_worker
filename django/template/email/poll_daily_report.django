@@ -1,0 +1,38 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>今日份的投票报告制作好了，请您过目！<br />
+    统计时间：{{ created_at }}。
+</p>
+<p>此时平台仍有 <b>{{ system.total }}</b> 个句子处于“投票中”队列；在过去 24 小时中，发生了这些变化：<p>
+<p>
+    平台处理了 {{ system.processed }} 个投票，其中：
+    <ul>
+        <li>入库：{{ system.approved }}</li>
+        <li>驳回：{{ system.rejected }}</li>
+        <li>需要修改：{{ system.need_modify }}</li>
+    </ul>
+</p>
+<p>
+    您参与了 {{ user.polled.total }} 个投票，其中：
+    <ul>
+        <li>等待处理：{{ user.waiting_for_others }} (需要其余审核员参与投票)</li>
+        <li>已入库：{{ user.approved }}</li>
+        <li>已驳回：{{ user.rejected }}</li>
+        <li>需要修改：{{ user.need_modify }} </li>
+    </ul>
+</p>
+<p>在参与的投票中，您对 {{ user.polled.approve }} 个投票选择了 <u>批准</u> ，
+    对 {{ user.polled.reject }} 个投票选择了 <u>驳回</u>，
+    对 {{ user.polled.need_modify }} 个投票选择了 <u>需要修改</u>。
+</p>
+<p>此时，您还有 <b>{{ user.wait_for_polling }}</b> 个投票需要处理。</p>
+
+<p style="font-size: 14px;">感谢您的付出，一言因你而焕发生机。<br/>
+    “生命从无中来，到无中去，每个人都处于‘上场——谢幕’这样一个循环中。这个循环不是悲伤，不是无意义，意义就在这过程中；生命之所以有趣，就在于过程中的体验和收获。”<br />
+    以此共勉。
+</p>
+
+{% endblock %}
+

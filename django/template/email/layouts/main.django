@@ -7,7 +7,7 @@
 	<meta name="color-scheme" content="light">
 	<meta name="supported-color-schemes" content="light">
 	{% block theme %}
-		{% include "../partials/theme/default.django" %}
+		{% include "email/partials/theme/default.django" %}
 	{% endblock theme %}
 	<style>
 		@media only screen and (max-width: 600px) {
@@ -33,7 +33,7 @@
 	<tr>
 		<td align="center">
 			<table class="content" width="100%" cellpadding="0" cellspacing="0" role="presentation">
-				{% include "../partials/header.django" %}
+				{% include "email/partials/header.django" %}
 
 				<!-- Email Body -->
 				<tr>
@@ -42,14 +42,21 @@
 							<!-- Body content -->
 							<tr>
 								<td class="content-cell">
-									{% block content %}{% endblock %}}
+									{% block content %}{% endblock %}
+									{% block sign %}
+									<br />
+									<p>感谢您的支持，<br />
+									萌创团队 - 一言项目组<br />
+									{{ today }}</p>
+									{% endblock %}
+									{% block content_after %}{% endblock %}
 								</td>
 							</tr>
 						</table>
 					</td>
 				</tr>
 
-				{% include "../partials/footer.django" %}
+				{% include "email/partials/footer.django" %}
 			</table>
 		</td>
 	</tr>

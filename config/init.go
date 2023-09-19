@@ -38,4 +38,6 @@ func Parse() {
 		zap.String("config_file_used", viper.ConfigFileUsed()),
 		zap.Any("settings", viper.AllSettings()),
 	)
+
+	executeCallbacks()
 }

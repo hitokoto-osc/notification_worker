@@ -1,11 +1,10 @@
 package django
 
 import (
-	"github.com/flosch/pongo2/v6"
 	"strings"
 )
 
-var globalsCtxProviders = make(pongo2.Context)
+var globalsCtxProviders = make(Context)
 
 func SetGlobals(path string, value any) {
 	keys := strings.Split(path, ".")
@@ -19,18 +18,18 @@ func SetGlobals(path string, value any) {
 			return
 		}
 		var (
-			t  pongo2.Context
+			t  Context
 			ok bool
 		)
-		t, ok = o[v].(pongo2.Context)
+		t, ok = o[v].(Context)
 		if !ok {
-			o[v] = make(pongo2.Context)
+			o[v] = make(Context)
 		} else {
 			o = t
 		}
 	}
 }
 
-func GetGlobals() pongo2.Context {
+func GetGlobals() Context {
 	return globalsCtxProviders
 }

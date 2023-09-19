@@ -71,6 +71,14 @@
         font-size: 12px;
     }
 
+    li {
+        font-size: 15px
+    }
+
+    u {
+        text-underline-offset: 3px;
+    }
+
     img {
         max-width: 100%;
     }

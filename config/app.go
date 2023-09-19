@@ -29,6 +29,6 @@ func Debug() bool {
 	return debug
 }
 
-func MailDriver() int {
-	return viper.GetInt("mail.driver")
+func MailDriver() driver.Type {
+	return viper.Get("mail.driver").(driver.Type)
 }
