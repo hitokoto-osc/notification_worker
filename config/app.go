@@ -17,7 +17,7 @@ var (
 
 func init() {
 	flag.StringVar(&configFile, "c", "", "设定配置文件")
-	flag.BoolVar(&debug, "d", false, "调试模式")
+	flag.BoolVar(&debug, "D", false, "调试模式")
 	viper.SetDefault("mail.driver", driver.TypeAliyun)
 }
 
