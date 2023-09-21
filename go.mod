@@ -8,7 +8,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
 	github.com/cockroachdb/errors v1.11.1
 	github.com/flosch/pongo2/v6 v6.0.0
-	github.com/golang-module/carbon/v2 v2.2.7
+	github.com/golang-module/carbon/v2 v2.2.8
 	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/samber/lo v1.38.1
