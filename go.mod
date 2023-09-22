@@ -3,7 +3,7 @@ module github.com/hitokoto-osc/notification-worker
 go 1.21
 
 require (
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
 	github.com/alibabacloud-go/dm-20151123/v2 v2.0.4
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
 	github.com/cockroachdb/errors v1.11.1
