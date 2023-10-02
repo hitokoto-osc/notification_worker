@@ -10,7 +10,7 @@ require (
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/golang-module/carbon/v2 v2.2.8
 	github.com/google/uuid v1.3.1
-	github.com/rabbitmq/amqp091-go v1.8.1
+	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/samber/lo v1.38.1
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
