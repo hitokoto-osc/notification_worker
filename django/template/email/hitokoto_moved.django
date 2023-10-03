@@ -1,0 +1,18 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+<h1>您好，{{ username }}。</h1>
+<p>您于 {{ created_at }} 提交至 <u>{{ type }}</u> 的句子：</p>
+<br />
+<p style="text-align: center;"><b>{{ hitokoto }}</b></p>
+<p style="text-align: right; font-size: 13px;"> —— {{ from_who }} 「{{ from }}」</p>
+<br />
+
+<p>于 {{ operated_at }} 被 {{ operator_username }}（{{ operator_uid }}）移动至 <b>{{ operate }}</b>。</p>
+{% if operate == "驳回" %}
+<p>
+    若对结果有疑惑，可以发信至 <code>i@loli.online</code>（或在工单系统） 联系我们（备注句子 UUID）。
+</p>
+{% endif %}
+{% endblock %}
+
