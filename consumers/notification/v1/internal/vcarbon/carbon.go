@@ -64,9 +64,12 @@ func (p *Carbon) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	*p = *NewFromCarbon(carbon.Parse(str))
-	return &InvalidCarbonParseParameterError{
-		Parameter:  str,
-		Msg:        "invalid time string",
-		innerError: err,
+	if p.Error != nil {
+		return &InvalidCarbonParseParameterError{
+			Parameter:  str,
+			Msg:        p.Error.Error(),
+			innerError: p.Error,
+		}
 	}
+	return nil
 }
