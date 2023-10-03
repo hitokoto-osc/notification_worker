@@ -17,9 +17,9 @@ builds:
       - windows
       - darwin
     goarch:
-      - 386
+#      - 386
       - amd64
-      - arm
+#      - arm
       - arm64
     ldflags:
       - -X github.com/hitokoto-osc/notification-worker/config.Version={{.Version}} -X github.com/hitokoto-osc/notification-worker/config.BuildTag={{.FullCommit}} -X github.com/hitokoto-osc/notification-worker/config.BuildTime={{ .Date }} -X github.com/hitokoto-osc/notification-worker/config.CommitTime={{ .CommitDate }}
