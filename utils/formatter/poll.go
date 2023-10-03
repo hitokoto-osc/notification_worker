@@ -34,7 +34,7 @@ func FormatPollStatus(t consts.PollStatus) string {
 	case consts.PollStatusOpenForCommonUser:
 		return "开放给普通用户投票"
 	case consts.PollStatusApproved:
-		return "赞同"
+		return "入库"
 	case consts.PollStatusRejected:
 		return "驳回"
 	case consts.PollStatusNeedModify:

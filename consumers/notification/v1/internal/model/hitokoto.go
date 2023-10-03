@@ -6,9 +6,9 @@ import (
 	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/vcarbon"
 )
 
-// Hitokoto 消息结构体
+// HitokotoBaseMessage 消息结构体
 // FIXME: 应该抽象成一个全局共用的结构体，而不是每个模块都有一个，因为历史因素 v2 应该重新设计。
-type Hitokoto struct {
+type HitokotoBaseMessage struct {
 	To        string              `json:"to" validate:"email,required"`   // 对象邮件地址
 	UUID      string              `json:"uuid" validate:"uuid4,required"` // 句子 UUID
 	Hitokoto  string              `json:"hitokoto" validate:"required"`   // 句子
@@ -20,11 +20,11 @@ type Hitokoto struct {
 }
 
 // HitokotoAppendedMessage 句子添加消息
-type HitokotoAppendedMessage Hitokoto
+type HitokotoAppendedMessage HitokotoBaseMessage
 
 // HitokotoMovedMessage 句子移动消息
 type HitokotoMovedMessage struct {
-	Hitokoto
+	HitokotoBaseMessage
 	OperatedAt       *vcarbon.Carbon   `json:"operated_at" validate:"required"`       // 操作时间
 	OperatorUsername string            `json:"operator_username" validate:"required"` // 操作者用户名
 	OperatorUID      uint              `json:"operator_uid" validate:"required"`      // 操作者 UID
@@ -32,7 +32,7 @@ type HitokotoMovedMessage struct {
 }
 
 type HitokotoReviewedMessage struct {
-	Hitokoto
+	HitokotoBaseMessage
 	OperatedAt   *vcarbon.Carbon   `json:"operated_at" validate:"required"`   // 操作时间
 	ReviewerName string            `json:"reviewer_name" validate:"required"` // 审核员名称
 	ReviewerUid  int               `json:"reviewer_uid" validate:"required"`  // 审核员用户标识
@@ -41,7 +41,7 @@ type HitokotoReviewedMessage struct {
 
 // PollCreatedMessage 投票创建消息
 type PollCreatedMessage struct {
-	Hitokoto
+	HitokotoBaseMessage
 	Username  string          `json:"user_name" validate:"required"`  // 收信人
 	ID        uint            `json:"id" validate:"required"`         // 投票标识
 	CreatedAt *vcarbon.Carbon `json:"created_at" validate:"required"` // 这里是投票创建时间， ISO 时间
@@ -76,7 +76,7 @@ type PollDailyReportMessage struct {
 
 // PollFinishedMessage 投票完成消息
 type PollFinishedMessage struct {
-	Hitokoto
+	HitokotoBaseMessage
 	PollID    int               `json:"id"`         // 投票 ID
 	UpdatedAt string            `json:"updated_at"` // 投票更新时间，这里也是结束时间
 	Username  string            `json:"user_name"`  // 审核员名字
