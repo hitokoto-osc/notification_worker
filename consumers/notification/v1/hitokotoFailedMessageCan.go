@@ -1,4 +1,4 @@
-package notification
+package v1
 
 import (
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"

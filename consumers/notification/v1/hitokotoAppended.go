@@ -1,19 +1,18 @@
-package notification
+package v1
 
 import (
-	"encoding/json"
 	"github.com/cockroachdb/errors"
-	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/model"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
-	"github.com/hitokoto-osc/notification-worker/utils"
+	"github.com/hitokoto-osc/notification-worker/utils/formatter"
+	"github.com/hitokoto-osc/notification-worker/utils/validator"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func init() {
@@ -47,29 +46,21 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("[hitokoto_appended] 收到消息: %v  \n", zap.ByteString("body", delivery.Body))
-			message := hitokotoAppendedMessage{}
-			err := json.Unmarshal(delivery.Body, &message)
+			message, err := validator.UnmarshalV[model.HitokotoAppendedMessage](ctx, delivery.Body)
 			if err != nil {
-				return err
-			}
-			// 转换成时间戳
-			ts, err := strconv.ParseInt(message.CreatedAt, 10, 64)
-			if err != nil {
-				return err
+				return errors.Wrap(err, "解析消息失败")
 			}
 			html, err := django.RenderTemplate("email/hitokoto_appended", django.Context{
 				"username":   message.Creator,
-				"created_at": carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
+				"created_at": message.CreatedAt.Format("Y-m-d H:i:s"),
 				"hitokoto":   message.Hitokoto,
 				"from":       message.From,
 				"from_who":   message.FromWho,
-				"type":       utils.FormatHitokotoType(message.Type),
-				"now":        carbon.Now().Format("Y 年 n 月 j 日"),
+				"type":       formatter.FormatHitokotoType(message.Type),
 			})
 			if err != nil {
 				return errors.Wrap(err, "渲染模板失败")
 			}
-
 			err = mail.SendSingle(ctx, &mailer.Mailer{
 				Type: mailer.TypeNormal,
 				Mail: mailer.Mail{
@@ -81,15 +72,4 @@ func HitokotoAppendedEvent() *rabbitmq.ConsumerRegisterOptions {
 			return err
 		},
 	}
-}
-
-type hitokotoAppendedMessage struct {
-	To        string `json:"to"`         // 对象邮件地址
-	UUID      string `json:"uuid"`       // 句子 UUID
-	Hitokoto  string `json:"hitokoto"`   // 句子
-	From      string `json:"from"`       // 来源
-	Type      string `json:"type"`       // 分类
-	FromWho   string `json:"from_who"`   // 作者
-	Creator   string `json:"creator"`    // 提交者名称
-	CreatedAt string `json:"created_at"` // 提交时间
 }

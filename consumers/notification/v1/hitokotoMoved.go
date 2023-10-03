@@ -1,19 +1,18 @@
-package notification
+package v1
 
 import (
-	"encoding/json"
 	"github.com/cockroachdb/errors"
-	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/model"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
-	"github.com/hitokoto-osc/notification-worker/utils"
+	"github.com/hitokoto-osc/notification-worker/utils/formatter"
+	"github.com/hitokoto-osc/notification-worker/utils/validator"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func init() {
@@ -47,33 +46,18 @@ func HitokotoMovedEvent() *rabbitmq.ConsumerRegisterOptions {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("收到消息:", zap.ByteString("body", delivery.Body))
-			message := new(HitokotoMovedMessage)
-			err := json.Unmarshal(delivery.Body, &message)
+			message, err := validator.UnmarshalV[model.HitokotoMovedMessage](ctx, delivery.Body)
 			if err != nil {
-				return errors.Wrap(err, "无法解析消息体")
+				return errors.Wrap(err, "解析消息失败")
 			}
-			// 转换成时间戳
-			ts, err := strconv.ParseInt(message.CreatedAt, 10, 64)
-			if err != nil {
-				return errors.Wrap(err, "无法解析时间戳")
-			}
-
-			// 处理数据
-			var operate string
-			if message.Operate == 200 { // 只可能通过或者驳回，目前。
-				operate = "通过"
-			} else {
-				operate = "驳回"
-			}
-
 			html, err := django.RenderTemplate("email/hitokoto_reviewed", django.Context{
 				"username":          message.Creator,
-				"created_at":        carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
+				"created_at":        message.CreatedAt.Format("Y-m-d H:i:s"),
 				"hitokoto":          message.Hitokoto,
 				"from_who":          message.FromWho,
 				"from":              message.From,
-				"type":              utils.FormatHitokotoType(message.Type),
-				"operate":           operate,
+				"type":              formatter.FormatHitokotoType(message.Type),
+				"operate":           formatter.FormatPollStatus(message.Operate),
 				"operator_username": message.OperatorUsername,
 				"operator_uid":      message.OperatorUID,
 				"operated_at":       message.OperatedAt,
@@ -92,12 +76,4 @@ func HitokotoMovedEvent() *rabbitmq.ConsumerRegisterOptions {
 			return err
 		},
 	}
-}
-
-type HitokotoMovedMessage struct {
-	hitokotoAppendedMessage
-	OperatedAt       string `json:"operated_at"`       // 操作时间
-	OperatorUsername string `json:"operator_username"` // 操作者用户名
-	OperatorUID      string `json:"operator_uid"`      // 操作者 UID
-	Operate          int    `json:"operate"`           // 操作
 }

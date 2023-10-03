@@ -1,16 +1,16 @@
-package notification
+package v1
 
 import (
-	"encoding/json"
 	"github.com/cockroachdb/errors"
-	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/model"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
-	"github.com/hitokoto-osc/notification-worker/utils"
+	"github.com/hitokoto-osc/notification-worker/utils/formatter"
+	"github.com/hitokoto-osc/notification-worker/utils/validator"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
@@ -46,22 +46,19 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("[hitokoto_poll_created]收到消息：", zap.ByteString("body", delivery.Body))
-			message := hitokotoPollCreatedMessage{}
-			err := json.Unmarshal(delivery.Body, &message)
+			message, err := validator.UnmarshalV[model.PollCreatedMessage](ctx, delivery.Body)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "解析消息失败")
 			}
-
 			html, err := django.RenderTemplate("email/poll_created", django.Context{
-				"username":   message.UserName,
-				"created_at": carbon.Parse(message.CreatedAt).Format("Y-m-d H:i:s"),
-				"poll_id":    message.Id,
+				"username":   message.Username,
+				"created_at": message.CreatedAt.Format("Y-m-d H:i:s"),
+				"poll_id":    message.ID,
 				"hitokoto":   message.Hitokoto,
 				"from":       message.From,
 				"from_who":   message.FromWho,
-				"type":       utils.FormatHitokotoType(message.Type),
+				"type":       formatter.FormatHitokotoType(message.Type),
 				"creator":    message.Creator,
-				"now":        carbon.Now().Format("Y 年 n 月 j 日"),
 			})
 			if err != nil {
 				return errors.Wrap(err, "无法渲染模板")
@@ -77,11 +74,4 @@ func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 			return err
 		},
 	}
-}
-
-type hitokotoPollCreatedMessage struct {
-	hitokotoAppendedMessage
-	UserName  string `json:"user_name"`  // 收信人
-	Id        int    `json:"id"`         // 投票标识
-	CreatedAt string `json:"created_at"` // 这里是投票创建时间， ISO 时间
 }

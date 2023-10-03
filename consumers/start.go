@@ -2,7 +2,7 @@ package consumers
 
 import (
 	"github.com/hitokoto-osc/notification-worker/config"
-	_ "github.com/hitokoto-osc/notification-worker/consumers/notification"
+	_ "github.com/hitokoto-osc/notification-worker/consumers/notification/v1"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
 	"go.uber.org/zap"
@@ -16,7 +16,7 @@ func Run() {
 	defer logger.Sync()
 	logger.Info("注册消息队列接收器...")
 	c := &config.RabbitMQ{}
-	logger.Info((&rabbitmq.Config{
+	logger.Debug((&rabbitmq.Config{
 		Host:     c.Host(),
 		Port:     c.Port(),
 		Username: c.User(),

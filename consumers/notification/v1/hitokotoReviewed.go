@@ -1,19 +1,18 @@
-package notification
+package v1
 
 import (
-	"encoding/json"
 	"github.com/cockroachdb/errors"
-	"github.com/golang-module/carbon/v2"
+	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/model"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/django"
 	"github.com/hitokoto-osc/notification-worker/logging"
 	"github.com/hitokoto-osc/notification-worker/mail"
 	"github.com/hitokoto-osc/notification-worker/mail/mailer"
 	"github.com/hitokoto-osc/notification-worker/rabbitmq"
-	"github.com/hitokoto-osc/notification-worker/utils"
+	"github.com/hitokoto-osc/notification-worker/utils/formatter"
+	"github.com/hitokoto-osc/notification-worker/utils/validator"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func init() {
@@ -47,37 +46,21 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			logger := logging.WithContext(ctx)
 			defer logger.Sync()
 			logger.Debug("[hitokoto_reviewed] 收到消息:", zap.ByteString("body", delivery.Body))
-			message := hitokotoReviewedMessage{}
-			err := json.Unmarshal(delivery.Body, &message)
+			message, err := validator.UnmarshalV[model.HitokotoReviewedMessage](ctx, delivery.Body)
 			if err != nil {
 				return errors.Wrap(err, "无法解析消息体")
 			}
-			// 转换成时间戳
-			ts, err := strconv.ParseInt(message.CreatedAt, 10, 64)
-			if err != nil {
-				return errors.Wrap(err, "无法解析时间戳")
-			}
-
-			// 处理数据
-			var reviewResult string
-			if message.Status == 200 { // 只可能通过或者驳回，目前。
-				reviewResult = "通过"
-			} else {
-				reviewResult = "驳回"
-			}
-
 			html, err := django.RenderTemplate("email/hitokoto_reviewed", django.Context{
 				"username":      message.Creator,
-				"created_at":    carbon.CreateFromTimestamp(ts).Format("Y-m-d H:i:s"),
+				"created_at":    message.CreatedAt.Format("Y-m-d H:i:s"),
 				"hitokoto":      message.Hitokoto,
 				"from_who":      message.FromWho,
 				"from":          message.From,
-				"type":          utils.FormatHitokotoType(message.Type),
+				"type":          formatter.FormatHitokotoType(message.Type),
 				"reviewer":      message.ReviewerName,
 				"reviewer_uid":  message.ReviewerUid,
-				"reviewed_at":   carbon.Parse(message.OperatedAt).Format("Y-m-d H:i:s"),
-				"review_result": reviewResult,
-				"now":           carbon.Now().Format("Y-m-d H:i:s"),
+				"reviewed_at":   message.OperatedAt.Format("Y-m-d H:i:s"),
+				"review_result": formatter.FormatPollStatus(message.Status),
 			})
 			if err != nil {
 				return errors.Wrap(err, "渲染模板失败")
@@ -93,12 +76,4 @@ func HitokotoReviewedEvent() *rabbitmq.ConsumerRegisterOptions {
 			return err
 		},
 	}
-}
-
-type hitokotoReviewedMessage struct {
-	hitokotoAppendedMessage
-	OperatedAt   string `json:"operated_at"`   // 操作时间
-	ReviewerName string `json:"reviewer_name"` // 审核员名称
-	ReviewerUid  int    `json:"reviewer_uid"`  // 审核员用户标识
-	Status       int    `json:"status"`        // 审核结果： 200 为通过，201 为驳回
 }
