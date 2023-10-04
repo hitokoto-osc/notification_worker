@@ -2,7 +2,6 @@ package v1
 
 import (
 	"github.com/cockroachdb/errors"
-	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/consumers/notification/v1/internal/model"
 	"github.com/hitokoto-osc/notification-worker/consumers/provider"
 	"github.com/hitokoto-osc/notification-worker/django"
@@ -57,7 +56,7 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 			html, err := django.RenderTemplate("email/poll_finished", django.Context{
 				"username":    message.Username,
 				"poll_id":     message.PollID,
-				"operated_at": carbon.Parse(message.UpdatedAt).Format("Y-m-d H:i:s"),
+				"operated_at": message.UpdatedAt.Format("Y-m-d H:i:s"),
 				"hitokoto":    message.Hitokoto,
 				"from":        message.From,
 				"from_who":    message.FromWho,
@@ -66,7 +65,6 @@ func HitokotoPollFinishedEvent() *rabbitmq.ConsumerRegisterOptions {
 				"status":      formatter.FormatPollStatus(message.Status),
 				"method":      formatter.FormatPollMethod(message.Method),
 				"point":       strconv.Itoa(message.Point),
-				"now":         carbon.Now().Format("Y 年 n 月 j 日"),
 			})
 			if err != nil {
 				return errors.Wrap(err, "无法渲染模板")
