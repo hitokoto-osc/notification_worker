@@ -54,3 +54,11 @@ func CopyPongoContextRecursive(dst, src pongo2.Context) {
 		}
 	}
 }
+
+func MergeContext(contexts ...Context) Context {
+	var ctx = make(Context)
+	for _, c := range contexts {
+		CopyPongoContextRecursive(ctx, c)
+	}
+	return ctx
+}

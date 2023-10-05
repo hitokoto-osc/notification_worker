@@ -84,7 +84,5 @@ func RenderTemplate(name string, ctx Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mergedCtx := runtimeGlobals()
-	CopyPongoContextRecursive(mergedCtx, ctx)
-	return tpl.Execute(mergedCtx)
+	return tpl.Execute(MergeContext(instance.Globals, runtimeGlobals(), ctx))
 }
