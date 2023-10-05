@@ -51,23 +51,30 @@ func init() {
 	})
 }
 
-// runtimeInjectGlobals injects globals to pongo2 template runtime, because globals may be changed at runtime,
+// runtimeGlobals return runtime globals to pongo2 template runtime, because globals may be changed at runtime,
 // such as language, time, tracing.
-// This function should be called getTemplate().
-func runtimeInjectGlobals() {
+// This function should be called and injected before rendering a template.
+func runtimeGlobals() Context {
 	runtimeCtx := Context{
 		"app": Context{
 			"year": carbon.Now().Format("Y"),
 		},
 		"today": carbon.Now().Format("Y 年 n 月 j 日"),
 	}
-	CopyPongoContextRecursive(instance.Globals, runtimeCtx)
+	return runtimeCtx
 }
 
 // GetTemplate returns a template from cache.
+// Note that this method do not inject and return runtime globals.
 func GetTemplate(filename string) (*pongo2.Template, error) {
-	runtimeInjectGlobals()
 	return instance.FromCache(filename + ".django")
+}
+
+// GetTemplateR returns a template from cache and runtime ctx.
+// Note that you should inject runtime globals before rendering a template.
+func GetTemplateR(filename string) (*pongo2.Template, Context, error) {
+	tpl, err := GetTemplate(filename)
+	return tpl, runtimeGlobals(), err
 }
 
 // RenderTemplate renders a template with context.
@@ -77,5 +84,7 @@ func RenderTemplate(name string, ctx Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return tpl.Execute(ctx)
+	mergedCtx := runtimeGlobals()
+	CopyPongoContextRecursive(mergedCtx, ctx)
+	return tpl.Execute(mergedCtx)
 }
