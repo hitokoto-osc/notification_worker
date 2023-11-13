@@ -34,7 +34,7 @@ jobs:
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/hitokoto-osc/notification-worker/config.BuildTag=$COMMIT_HASH -X github.com/hitokoto-osc/notification-worker/config.BuildTime=$CURRENT_TIME -X github.com/hitokoto-osc/notification-worker/config.CommitTime=$COMMIT_TIME -s -w --extldflags '-static -fpic'" -o ./notification-worker main.go
       -
         name: Build and push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           push: true
           tags: hitokoto/notification-worker:dev-latest
