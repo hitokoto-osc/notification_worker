@@ -10,7 +10,7 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-playground/validator/v10 v10.15.5
-	github.com/golang-module/carbon/v2 v2.2.8
+	github.com/golang-module/carbon/v2 v2.3.10
 	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/samber/lo v1.38.1
