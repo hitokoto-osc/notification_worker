@@ -10,12 +10,12 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-playground/validator/v10 v10.15.5
-	github.com/golang-module/carbon/v2 v2.2.8
+	github.com/golang-module/carbon/v2 v2.4.1
 	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/samber/lo v1.38.1
 	github.com/spf13/viper v1.16.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/sync v0.3.0
 )
