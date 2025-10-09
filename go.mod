@@ -1,6 +1,6 @@
 module github.com/hitokoto-osc/notification-worker
 
-go 1.21
+go 1.23
 
 require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
@@ -10,12 +10,12 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-playground/validator/v10 v10.15.5
-	github.com/golang-module/carbon/v2 v2.2.8
+	github.com/golang-module/carbon/v2 v2.6.9
 	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/samber/lo v1.38.1
 	github.com/spf13/viper v1.16.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/sync v0.3.0
 )
@@ -33,6 +33,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dromara/carbon/v2 v2.6.9 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
