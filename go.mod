@@ -8,9 +8,9 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
 	github.com/bytedance/sonic v1.15.2
 	github.com/cockroachdb/errors v1.14.0
+	github.com/dromara/carbon/v2 v2.6.9
 	github.com/flosch/pongo2/v6 v6.1.0
 	github.com/go-playground/validator/v10 v10.30.3
-	github.com/golang-module/carbon/v2 v2.6.9
 	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/samber/lo v1.53.0
@@ -33,7 +33,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
-	github.com/dromara/carbon/v2 v2.6.9 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/getsentry/sentry-go v0.46.0 // indirect

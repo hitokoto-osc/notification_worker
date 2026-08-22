@@ -1,8 +1,8 @@
 package django
 
 import (
+	"github.com/dromara/carbon/v2"
 	"github.com/flosch/pongo2/v6"
-	"github.com/golang-module/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/config"
 	"github.com/hitokoto-osc/notification-worker/consts"
 	"github.com/samber/lo"

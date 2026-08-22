@@ -3,7 +3,7 @@ package vcarbon
 import (
 	"fmt"
 	"github.com/bytedance/sonic"
-	"github.com/golang-module/carbon/v2"
+	"github.com/dromara/carbon/v2"
 	"github.com/hitokoto-osc/notification-worker/utils/strutils"
 )
 
@@ -29,8 +29,8 @@ func (e *InvalidCarbonParseParameterError) Unwrap() error {
 	return e.innerError
 }
 
-func NewFromCarbon(c carbon.Carbon) *Carbon {
-	return &Carbon{c}
+func NewFromCarbon(c *carbon.Carbon) *Carbon {
+	return &Carbon{*c}
 }
 
 // UnmarshalJSON 重写 carbon.Carbon 的 JSON 解析方法
@@ -44,7 +44,7 @@ func (p *Carbon) UnmarshalJSON(data []byte) error {
 	}
 	if strutils.IsInteger(str) { // Maybe timestamp
 		length := len(str)
-		var inner carbon.Carbon
+		var inner *carbon.Carbon
 		switch length {
 		case 10: // 秒级时间戳
 			inner = carbon.CreateFromTimestamp(strutils.MustInt64(str))
