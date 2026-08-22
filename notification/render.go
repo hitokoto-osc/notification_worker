@@ -262,6 +262,9 @@ func contributorPills(m Metrics) []django.Context {
 		pill("已入库", m.Approved, ToneSuccess),
 		pill("已驳回", m.Rejected, ToneDanger),
 		pill("待修改", m.NeedModify, ToneWarning),
+		// 未预期的终态也计入 Attention，没有这枚胶囊的话，一封只含未知状态的
+		// 摘要顶部会是一片空白。
+		pill("其他需处理", m.Attention-m.Rejected-m.NeedModify, ToneDanger),
 		pill("新提交", m.Pending, ToneNeutral),
 	)
 }
@@ -330,10 +333,16 @@ func itemContext(item Item) django.Context {
 	}
 }
 
-// statusLabel 保证终态条目一定有文案。未知状态会被归入「需要您关注」分节，
+// carriesStatus 是展示层意义上的「这条事件带有处理结果」，与 isTerminal 分开：
+// isTerminal 只服务于生命周期折叠，把投票结算并进去会改变折叠行为。
+func carriesStatus(t EventType) bool {
+	return isTerminal(t) || t == EventHitokotoPollFinished
+}
+
+// statusLabel 保证带结果的条目一定有文案。未知状态会被归入「需要您关注」分节，
 // 若同时没有徽章文案，收件人就无从判断这条为什么需要关注。
 func statusLabel(item Item) string {
-	if item.StatusLabel != "" || !isTerminal(item.Type) {
+	if item.StatusLabel != "" || !carriesStatus(item.Type) {
 		return item.StatusLabel
 	}
 	return fmt.Sprintf("未知状态（%d）", item.StatusCode)

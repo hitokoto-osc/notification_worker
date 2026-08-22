@@ -247,7 +247,20 @@ func TestRenderLabelsUnknownTerminalStatus(t *testing.T) {
 	result, err := Render(digest)
 	require.NoError(t, err)
 	assert.Contains(t, result.HTML, "未知状态（999）")
+	assert.Contains(t, result.HTML, "其他需处理", "未知终态必须有对应的统计胶囊")
 	assert.Equal(t, 2, result.Metrics.Attention)
+}
+
+// 投票结算也带处理结果，同样需要文案兜底；但它不属于生命周期折叠的终态。
+func TestRenderLabelsUnknownPollFinishedStatus(t *testing.T) {
+	digest := reviewerFixture()
+	digest.Items[2].StatusCode = 999
+	digest.Items[2].StatusLabel = ""
+
+	result, err := Render(digest)
+	require.NoError(t, err)
+	require.Equal(t, RenderDigest, result.Kind)
+	assert.Contains(t, result.HTML, "未知状态（999）")
 }
 
 func TestRenderRejectsMismatchedGroup(t *testing.T) {
