@@ -6,7 +6,7 @@
 <p style="font-size: 14px;">
     内容：{{ hitokoto }}<br />
     来源：{{ from }} <br />
-    作者：{{ fromWho|default:"未填写" }} <br />
+    作者：{{ from_who|default:"未填写" }} <br />
     分类：{{ type }} <br />
     提交者： {{ creator }} <br />
 </p>

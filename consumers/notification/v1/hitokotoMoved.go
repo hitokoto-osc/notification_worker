@@ -50,7 +50,7 @@ func HitokotoMovedEvent() *rabbitmq.ConsumerRegisterOptions {
 			if err != nil {
 				return errors.Wrap(err, "解析消息失败")
 			}
-			html, err := django.RenderTemplate("email/hitokoto_reviewed", django.Context{
+			html, err := django.RenderTemplate("email/hitokoto_moved", django.Context{
 				"username":          message.Creator,
 				"created_at":        message.CreatedAt.Format("Y-m-d H:i:s"),
 				"hitokoto":          message.Hitokoto,
@@ -60,7 +60,7 @@ func HitokotoMovedEvent() *rabbitmq.ConsumerRegisterOptions {
 				"operate":           formatter.FormatPollStatus(message.Operate),
 				"operator_username": message.OperatorUsername,
 				"operator_uid":      message.OperatorUID,
-				"operated_at":       message.OperatedAt,
+				"operated_at":       message.OperatedAt.Format("Y-m-d H:i:s"),
 			})
 			if err != nil {
 				return errors.Wrap(err, "渲染模板失败")
