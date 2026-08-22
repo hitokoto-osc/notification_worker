@@ -209,16 +209,45 @@ func TestRenderSingleItemFallsBackToSingleTemplate(t *testing.T) {
 	assert.Empty(t, result.Subject)
 }
 
-// 提交后立刻出审核结果：两条事件折叠成一条，同样不应发摘要。
-func TestRenderFallsBackWhenCollapseLeavesOneItem(t *testing.T) {
+// 提交后立刻出审核结果：输入仍是两条事件，应发摘要并展示合并徽章。
+// 回退单条模板只看输入事件数——调用方手上没有重建单条模板所需的审核员信息。
+func TestRenderUsesDigestWhenTwoEventsCollapseToOneRow(t *testing.T) {
 	digest := contributorFixture()
 	digest.Items = digest.Items[:2]
 
 	result, err := Render(digest)
 	require.NoError(t, err)
-	assert.Equal(t, RenderSingle, result.Kind)
-	require.NotNil(t, result.Single)
-	assert.Equal(t, "e-reviewed-1", result.Single.EventID)
+	assert.Equal(t, RenderDigest, result.Kind)
+	assert.Nil(t, result.Single)
+	assert.Contains(t, result.HTML, "提交并即时入库")
+	assert.Equal(t, 2, result.Metrics.EventCount)
+	assert.Equal(t, 1, result.Metrics.Total)
+}
+
+func TestRenderOmitsUnsafeActionURL(t *testing.T) {
+	for _, raw := range []string{"javascript:alert(1)", "", "not a url", "ftp://example.com/x"} {
+		t.Run(raw, func(t *testing.T) {
+			digest := contributorFixture()
+			digest.ActionURL = raw
+
+			result, err := Render(digest)
+			require.NoError(t, err)
+			assert.NotContains(t, result.HTML, "javascript:")
+			assert.NotContains(t, result.HTML, `class="button button-primary"`, "非法 action_url 时不应渲染 CTA")
+		})
+	}
+}
+
+// 终态缺少文案时必须有兜底，否则条目会落在「需要您关注」里却没有任何说明。
+func TestRenderLabelsUnknownTerminalStatus(t *testing.T) {
+	digest := contributorFixture()
+	digest.Items[2].StatusCode = 999
+	digest.Items[2].StatusLabel = ""
+
+	result, err := Render(digest)
+	require.NoError(t, err)
+	assert.Contains(t, result.HTML, "未知状态（999）")
+	assert.Equal(t, 2, result.Metrics.Attention)
 }
 
 func TestRenderRejectsMismatchedGroup(t *testing.T) {
@@ -258,7 +287,9 @@ func TestCollapseFoldsAppendedIntoTerminal(t *testing.T) {
 	assert.False(t, items[0].Collapsed, "Collapse 不得修改入参")
 }
 
-func TestCollapseKeepsLatestTerminal(t *testing.T) {
+// 只有「提交」这一条是冗余的。先入库、后被管理员移动至驳回是两次用户可见的
+// 状态变迁，折叠掉前一条会把事件流变成状态快照。
+func TestCollapseDropsOnlyTheAppendedEvent(t *testing.T) {
 	items := []Item{
 		{EventID: "appended", Type: EventHitokotoAppended, SentenceUUID: "u1", OccurredAt: at(0)},
 		{EventID: "reviewed", Type: EventHitokotoReviewed, SentenceUUID: "u1", StatusCode: statusApproved, OccurredAt: at(time.Minute)},
@@ -266,22 +297,27 @@ func TestCollapseKeepsLatestTerminal(t *testing.T) {
 	}
 	got := Collapse(items)
 
-	require.Len(t, got, 1)
-	assert.Equal(t, "moved", got[0].EventID)
-	assert.Equal(t, "提交并即时驳回", combinedLabel(got[0]))
+	require.Len(t, got, 2)
+	assert.Equal(t, "reviewed", got[0].EventID)
+	assert.True(t, got[0].Collapsed, "合并徽章打在紧跟提交的那条终态上")
+	assert.Equal(t, "提交并即时入库", combinedLabel(got[0]))
+	assert.Equal(t, "moved", got[1].EventID)
+	assert.False(t, got[1].Collapsed)
 }
 
-// 窗口内没有提交事件时不应打合并徽章——那条句子是更早提交的。
-func TestCollapseTerminalWithoutAppendedIsNotCombined(t *testing.T) {
+// 窗口内没有提交事件：句子是更早提交的，两条终态都要保留且都不打合并徽章。
+func TestCollapsePreservesTerminalsWithoutAppended(t *testing.T) {
 	items := []Item{
 		{EventID: "reviewed", Type: EventHitokotoReviewed, SentenceUUID: "u1", StatusCode: statusApproved, OccurredAt: at(0)},
 		{EventID: "moved", Type: EventHitokotoMoved, SentenceUUID: "u1", StatusCode: statusRejected, OccurredAt: at(time.Minute)},
 	}
 	got := Collapse(items)
 
-	require.Len(t, got, 1)
-	assert.Equal(t, "moved", got[0].EventID)
+	require.Len(t, got, 2)
+	assert.Equal(t, "reviewed", got[0].EventID)
+	assert.Equal(t, "moved", got[1].EventID)
 	assert.False(t, got[0].Collapsed)
+	assert.False(t, got[1].Collapsed)
 	assert.Empty(t, combinedLabel(got[0]))
 }
 
@@ -377,7 +413,7 @@ func TestRenderStaysUnderGmailClipThreshold(t *testing.T) {
 		ActionURL:      "https://hitokoto.cn/dashboard",
 		ActionText:     "前往创作者中心",
 	}
-	// 每节都占满 DefaultDisplayCap：驳回 / 入库 / 待审各 20 条。
+	// 每节都占满 DefaultDisplayCap（各自再多 5 条以触发溢出）：驳回 / 入库 / 待审。
 	statuses := []struct {
 		event  EventType
 		code   int

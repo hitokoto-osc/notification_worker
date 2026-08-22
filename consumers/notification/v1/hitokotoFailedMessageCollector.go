@@ -154,13 +154,16 @@ func HitokotoFailedMessageCollectEvent() *rabbitmq.ConsumerRegisterOptions {
 				return nil
 			}
 
-			originalExchange, err := headerString(delivery.Headers, "x-first-death-exchange")
-			if err != nil {
-				return err
-			}
-			originalQueue, err := headerString(delivery.Headers, "x-first-death-queue")
-			if err != nil {
-				return err
+			originalExchange, exchangeErr := headerString(delivery.Headers, "x-first-death-exchange")
+			originalQueue, queueErr := headerString(delivery.Headers, "x-first-death-queue")
+			if exchangeErr != nil || queueErr != nil {
+				// 与上面同理：原始路由头部无法解析同样不可恢复，返回错误会走自指的
+				// 死信路由造成热循环。
+				logger.Error("[RabbitMQ.Producer.FailedMessageCollector] 原始路由头部无法解析，投递死信桶。",
+					zap.NamedError("exchange", exchangeErr),
+					zap.NamedError("queue", queueErr),
+				)
+				return publishToCan(ctx, delivery)
 			}
 			producer, err := ctx.GetProducer(originalExchange, originalQueue, "")
 			if err != nil {

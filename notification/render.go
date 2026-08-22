@@ -2,6 +2,7 @@ package notification
 
 import (
 	"fmt"
+	"net/url"
 	"sort"
 
 	"github.com/cockroachdb/errors"
@@ -17,9 +18,14 @@ type section struct {
 	Overflow int
 }
 
-// Collapse 按句子折叠生命周期：同一 UUID 若存在终态事件，只保留最新的那一条；
-// 若该句子在窗口内还有「提交」事件，则在保留的终态上置 Collapsed，
-// 供模板显示「提交并即时入库」一类的合并徽章。
+// Collapse 折叠冗余的「提交」事件（决策 D6）。
+//
+// 同一句子在一封信里既显示「提交成功」又显示「审核通过」是冗余噪音，因此当窗口内
+// 该句子已经有终态事件（审核 / 重新审核）时，丢弃它的「提交」事件，并在最早的那条
+// 终态上置 Collapsed，供模板显示「提交并即时入库」一类的合并徽章。
+//
+// 终态事件之间不折叠：先「入库」后被管理员「移动至驳回」是两次用户可见的状态变迁，
+// 丢掉前一条会让摘要从事件流变成状态快照。
 //
 // 输入不会被修改。返回结果按 OccurredAt 升序，同刻按 EventID 稳定排序。
 func Collapse(items []Item) []Item {
@@ -33,8 +39,8 @@ func Collapse(items []Item) []Item {
 	})
 
 	type lifecycle struct {
-		hasAppended  bool
-		lastTerminal int // sorted 中最后一条终态事件的下标 +1，0 表示没有
+		hasAppended   bool
+		firstTerminal int // sorted 中最早一条终态事件的下标 +1，0 表示没有
 	}
 	states := make(map[string]lifecycle, len(sorted))
 	for i, item := range sorted {
@@ -45,8 +51,8 @@ func Collapse(items []Item) []Item {
 		switch {
 		case item.Type == EventHitokotoAppended:
 			state.hasAppended = true
-		case isTerminal(item.Type):
-			state.lastTerminal = i + 1
+		case isTerminal(item.Type) && state.firstTerminal == 0:
+			state.firstTerminal = i + 1
 		}
 		states[item.SentenceUUID] = state
 	}
@@ -54,15 +60,13 @@ func Collapse(items []Item) []Item {
 	collapsed := make([]Item, 0, len(sorted))
 	for i, item := range sorted {
 		state, tracked := states[item.SentenceUUID]
-		if !tracked || state.lastTerminal == 0 {
-			// 没有终态可折叠：原样保留（含无 UUID 的条目）。
-			collapsed = append(collapsed, item)
-			continue
+		folds := tracked && state.hasAppended && state.firstTerminal != 0
+		if folds && item.Type == EventHitokotoAppended {
+			continue // 该句子已有终态，「提交」这条是冗余的
 		}
-		if i+1 != state.lastTerminal {
-			continue // 提交事件与更早的终态都被折叠掉
+		if folds && i+1 == state.firstTerminal {
+			item.Collapsed = true
 		}
-		item.Collapsed = state.hasAppended
 		collapsed = append(collapsed, item)
 	}
 	return collapsed
@@ -70,7 +74,7 @@ func Collapse(items []Item) []Item {
 
 // Render 渲染一个窗口的摘要邮件。
 //
-// 条目数为 1 时不渲染摘要，而是返回 RenderSingle，由调用方回退到现有单条模板
+// 输入事件数为 1 时不渲染摘要，而是返回 RenderSingle，由调用方回退到现有单条模板
 // 与原主题——单句居中排版是现有模板的情感设计，塞进表格里观感很差。
 func Render(digest Digest) (Result, error) {
 	if len(digest.Items) == 0 {
@@ -90,13 +94,10 @@ func Render(digest Digest) (Result, error) {
 		return Result{Kind: RenderSingle, Single: &item}, nil
 	}
 
+	// 注意：只有「输入事件数为 1」才回退单条模板。两条事件折叠成一行仍然是摘要——
+	// 「提交并即时入库」徽章正是为这种情况准备的，且调用方手上没有重建单条模板
+	// 所需的审核员信息。
 	items := Collapse(digest.Items)
-	if len(items) == 1 {
-		// 折叠后只剩一条（提交后立刻出审核结果），同样回退到单条模板。
-		item := items[0]
-		return Result{Kind: RenderSingle, Single: &item}, nil
-	}
-
 	metrics := calculateMetrics(len(digest.Items), items)
 	subject := buildSubject(digest.Group, metrics)
 
@@ -124,7 +125,7 @@ func Render(digest Digest) (Result, error) {
 		"total":           metrics.Total,
 		"metrics":         pills,
 		"sections":        sectionContexts(sections),
-		"action_url":      digest.ActionURL,
+		"action_url":      safeActionURL(digest.ActionURL),
 		"action_text":     digest.ActionText,
 	})
 	if err != nil {
@@ -137,6 +138,19 @@ func Render(digest Digest) (Result, error) {
 		HTML:    html,
 		Metrics: metrics,
 	}, nil
+}
+
+// safeActionURL 只放行绝对 http(s) 地址。转义能防止属性逃逸，但拦不住
+// javascript: 一类的 scheme；取值非法时返回空串，模板会连同 CTA 一起省略。
+func safeActionURL(value string) string {
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ""
+	}
+	return value
 }
 
 func calculateMetrics(eventCount int, items []Item) Metrics {
@@ -304,7 +318,7 @@ func itemContext(item Item) django.Context {
 		"from":           item.From,
 		"from_who":       fromWho,
 		"type_label":     item.TypeLabel,
-		"status_label":   item.StatusLabel,
+		"status_label":   statusLabel(item),
 		"status_tone":    string(statusTone(item)),
 		"combined":       item.Collapsed,
 		"combined_label": combinedLabel(item),
@@ -314,6 +328,15 @@ func itemContext(item Item) django.Context {
 		"method_label":   item.MethodLabel,
 		"point":          item.Point,
 	}
+}
+
+// statusLabel 保证终态条目一定有文案。未知状态会被归入「需要您关注」分节，
+// 若同时没有徽章文案，收件人就无从判断这条为什么需要关注。
+func statusLabel(item Item) string {
+	if item.StatusLabel != "" || !isTerminal(item.Type) {
+		return item.StatusLabel
+	}
+	return fmt.Sprintf("未知状态（%d）", item.StatusCode)
 }
 
 func statusTone(item Item) Tone {

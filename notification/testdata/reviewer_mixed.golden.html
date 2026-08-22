@@ -332,6 +332,11 @@
 			.footer {
 				width: 100% !important;
 			}
+
+			/* 32px 左右内边距在 320px 屏上要吃掉 20% 宽度。 */
+			.content-cell {
+				padding: 16px !important;
+			}
 		}
 
 		@media only screen and (max-width: 500px) {
@@ -371,31 +376,28 @@
 <p style="font-size:15px;color:#718096;line-height:1.5;margin-top:0;margin-bottom:16px;">在过去的 5 分钟中，审核队列有 <b>3</b> 条新动态：</p>
 
 
-<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;">
-<tr><td style="padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#fef3c7;color:#92400e;border:1px solid #fde68a;"><b style="font-size:13px;">2</b> 待审阅</td></tr>
-</table>
+<span style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#fef3c7;color:#92400e;border:1px solid #fde68a;"><b style="font-size:13px;">2</b> 待审阅</span>
 
-<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;">
-<tr><td style="padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#def7ec;color:#03543f;border:1px solid #bcf0da;"><b style="font-size:13px;">1</b> 已结算</td></tr>
-</table>
+<span style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#def7ec;color:#03543f;border:1px solid #bcf0da;"><b style="font-size:13px;">1</b> 已结算</span>
 
 
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:24px 0 10px 0;">
-<tr><td style="border-left:4px solid #ed8936;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">新投票待审阅 <span style="font-size:13px;font-weight:normal;color:#718096;">（2）</span></td></tr>
+<tr><td role="heading" aria-level="2" style="border-left:4px solid #ed8936;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">新投票待审阅 <span style="font-size:13px;font-weight:normal;color:#718096;">（2）</span></td></tr>
 </table>
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold;background-color:#edf2f7;color:#4a5568;border:1px solid #cbd5e0;">#1024</span> <span style="color:#718096;font-size:12px;">Poetry - 古诗词</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:00:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:00:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「云想衣裳花想容」</td></tr>
-<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">提交者：alice　—— 李白《清平调》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「云想衣裳花想容」</td></tr>
+<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">提交者：alice</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:2px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 李白《清平调》</td></tr>
 </table>
 </td></tr>
 </table>
@@ -403,12 +405,13 @@
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold;background-color:#edf2f7;color:#4a5568;border:1px solid #cbd5e0;">#1025</span> <span style="color:#718096;font-size:12px;">Poetry - 古诗词</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:01:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:01:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「此情可待成追忆」</td></tr>
-<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">提交者：bob　—— 未填写《锦瑟》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「此情可待成追忆」</td></tr>
+<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">提交者：bob</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:2px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 未填写《锦瑟》</td></tr>
 </table>
 </td></tr>
 </table>
@@ -417,22 +420,24 @@
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:24px 0 10px 0;">
-<tr><td style="border-left:4px solid #48bb78;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">投票已结算 <span style="font-size:13px;font-weight:normal;color:#718096;">（1）</span></td></tr>
+<tr><td role="heading" aria-level="2" style="border-left:4px solid #48bb78;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">投票已结算 <span style="font-size:13px;font-weight:normal;color:#718096;">（1）</span></td></tr>
 </table>
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold;background-color:#edf2f7;color:#4a5568;border:1px solid #cbd5e0;">#1000</span> <span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px;background-color:#def7ec;color:#03543f;border:1px solid #bcf0da;">入库</span> <span style="color:#718096;font-size:12px;">Poetry - 古诗词</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:02:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:02:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「人生若只如初见」</td></tr>
-<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">提交者：carol　您投了 <b>赞同</b> 2 票　—— 纳兰性德《木兰花令》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「人生若只如初见」</td></tr>
+<tr><td colspan="2" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">提交者：carol&nbsp;·&nbsp;您投了 <b>赞同</b> 2 票</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:2px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 纳兰性德《木兰花令》</td></tr>
 </table>
 </td></tr>
 </table>
+
 
 
 
@@ -457,6 +462,7 @@
         </td>
     </tr>
 </table>
+
 
 
 <p style="font-size:12px;color:#a0aec0;text-align:center;margin-top:16px;margin-bottom:0;line-height:1.5;">为避免邮件频繁打扰，系统已将短时间内产生的投票动态合并送达。</p>

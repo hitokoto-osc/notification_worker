@@ -32,6 +32,11 @@
 			.footer {
 				width: 100% !important;
 			}
+
+			/* 32px 左右内边距在 320px 屏上要吃掉 20% 宽度。 */
+			.content-cell {
+				padding: 16px !important;
+			}
 		}
 
 		@media only screen and (max-width: 500px) {

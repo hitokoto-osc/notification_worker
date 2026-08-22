@@ -332,6 +332,11 @@
 			.footer {
 				width: 100% !important;
 			}
+
+			/* 32px 左右内边距在 320px 屏上要吃掉 20% 宽度。 */
+			.content-cell {
+				padding: 16px !important;
+			}
 		}
 
 		@media only screen and (max-width: 500px) {
@@ -371,27 +376,25 @@
 <p style="font-size:15px;color:#718096;line-height:1.5;margin-top:0;margin-bottom:16px;">在过去的 3 分钟中，您的句子有 <b>10</b> 条新动态：</p>
 
 
-<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;">
-<tr><td style="padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#edf2f7;color:#4a5568;border:1px solid #e2e8f0;"><b style="font-size:13px;">10</b> 新提交</td></tr>
-</table>
+<span style="display:inline-block;vertical-align:middle;margin:0 6px 6px 0;padding:4px 10px;border-radius:12px;font-size:12px;line-height:1.4;background-color:#edf2f7;color:#4a5568;border:1px solid #e2e8f0;"><b style="font-size:13px;">10</b> 新提交</span>
 
 
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:24px 0 10px 0;">
-<tr><td style="border-left:4px solid #4a5568;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">成功提交待审 <span style="font-size:13px;font-weight:normal;color:#718096;">（3）</span></td></tr>
+<tr><td role="heading" aria-level="2" style="border-left:4px solid #4a5568;padding:2px 0 2px 10px;font-size:15px;font-weight:bold;color:#2d3748;line-height:1.4;">成功提交待审 <span style="font-size:13px;font-weight:normal;color:#718096;">（3）</span></td></tr>
 </table>
 
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="color:#718096;font-size:12px;">Original - 原创</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:00:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:00:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「第 0 条句子」</td></tr>
-<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">—— 未填写《来源》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「第 0 条句子」</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 未填写《来源》</td></tr>
 </table>
 </td></tr>
 </table>
@@ -399,12 +402,12 @@
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="color:#718096;font-size:12px;">Original - 原创</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:01:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:01:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「第 1 条句子」</td></tr>
-<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">—— 未填写《来源》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「第 1 条句子」</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 未填写《来源》</td></tr>
 </table>
 </td></tr>
 </table>
@@ -412,12 +415,12 @@
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
 <tr><td style="padding:12px 14px;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
-<tr>
+<tr valign="top">
 <td align="left" style="font-size:12px;color:#718096;line-height:1.4;"><span style="color:#718096;font-size:12px;">Original - 原创</span></td>
-<td align="right" style="font-size:11px;color:#a0aec0;line-height:1.4;white-space:nowrap;">2019-08-22 10:02:00</td>
+<td align="right" style="font-size:11px;color:#718096;line-height:1.4;white-space:nowrap;padding-left:8px;">2019-08-22 10:02:00</td>
 </tr>
-<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;">「第 2 条句子」</td></tr>
-<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;">—— 未填写《来源》</td></tr>
+<tr><td colspan="2" style="padding-top:8px;font-size:14px;color:#2d3748;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">「第 2 条句子」</td></tr>
+<tr><td colspan="2" align="right" style="padding-top:4px;font-size:12px;color:#718096;line-height:1.4;word-break:break-word;overflow-wrap:break-word;">—— 未填写《来源》</td></tr>
 </table>
 </td></tr>
 </table>
@@ -426,6 +429,7 @@
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:12px 0;">
 <tr><td align="center" style="padding:10px 14px;background-color:#edf2f7;border-radius:4px;font-size:13px;color:#718096;line-height:1.4;">另有 <b>7</b> 条未在邮件中展开，<a href="https://hitokoto.cn/dashboard" target="_blank" rel="noopener" style="color:#3869d4;text-decoration:underline;">前往查看完整列表</a>。</td></tr>
 </table>
+
 
 
 
@@ -449,6 +453,7 @@
         </td>
     </tr>
 </table>
+
 
 
 <p style="font-size:12px;color:#a0aec0;text-align:center;margin-top:16px;margin-bottom:0;line-height:1.5;">为避免邮件频繁打扰，系统已将短时间内产生的结果合并送达。</p>
