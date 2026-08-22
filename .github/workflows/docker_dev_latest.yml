@@ -8,21 +8,18 @@ jobs:
   latest:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Checkout code
-        uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+        uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.21'
       - name: Setup env
@@ -31,10 +28,15 @@ jobs:
           export COMMIT_TIME=$(git show -s --format=%ci $COMMIT_HASH)
           export CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
       - name: Build
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/hitokoto-osc/notification-worker/config.BuildTag=$COMMIT_HASH -X github.com/hitokoto-osc/notification-worker/config.BuildTime=$CURRENT_TIME -X github.com/hitokoto-osc/notification-worker/config.CommitTime=$COMMIT_TIME -s -w --extldflags '-static -fpic'" -o ./notification-worker main.go
-      -
-        name: Build and push
-        uses: docker/build-push-action@v4
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X
+          github.com/hitokoto-osc/notification-worker/config.BuildTag=$COMMIT_HASH
+          -X
+          github.com/hitokoto-osc/notification-worker/config.BuildTime=$CURRENT_TIME
+          -X
+          github.com/hitokoto-osc/notification-worker/config.CommitTime=$COMMIT_TIME
+          -s -w --extldflags '-static -fpic'" -o ./notification-worker main.go
+      - name: Build and push
+        uses: docker/build-push-action@v7
         with:
           push: true
           tags: hitokoto/notification-worker:dev-latest
