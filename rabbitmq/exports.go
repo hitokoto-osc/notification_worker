@@ -125,6 +125,13 @@ func (r *Instance) RegisterConsumer(options ConsumerRegisterOptions) error {
 	if err != nil {
 		return err
 	}
+	prefetch := options.ConsumerOptions.Prefetch
+	if prefetch <= 0 {
+		prefetch = DefaultConsumerPrefetch
+	}
+	if err = consumer.QOS(prefetch); err != nil {
+		return errors.Wrap(err, "consumer qos error")
+	}
 	err = consumer.Consume(options.CallFunc)
 	if err != nil {
 		return err
@@ -218,11 +225,21 @@ func (p *ConsumerList) Get(uuid string) (*Consumer, bool) {
 func (p *ConsumerList) Remove(uuid string) {
 	p.Lock()
 	defer p.Unlock()
-	for i, v := range p.list {
-		if v.UUID == uuid {
-			p.list = append(p.list[:i], p.list[i+1:]...)
+	p.list = removeUnitByUUID(p.list, uuid, func(u ConsumerUnit) string { return u.UUID })
+}
+
+// removeUnitByUUID 原地过滤掉匹配的单元。
+// 不能在 range 的同时用 append 切掉元素——那会跳过后继元素。
+func removeUnitByUUID[T any](list []T, uuid string, uuidOf func(T) string) []T {
+	kept := 0
+	for _, unit := range list {
+		if uuidOf(unit) != uuid {
+			list[kept] = unit
+			kept++
 		}
 	}
+	clear(list[kept:])
+	return list[:kept]
 }
 
 func (p *ConsumerList) Shutdown() error {
@@ -266,14 +283,25 @@ func (p *ProducerList) UpdateInstance(rmq *RabbitMQ) {
 }
 
 func (p *ProducerList) Get(uuid string) (*Producer, bool) {
+	producer, ok := p.find(uuid)
+	if !ok {
+		return nil, false
+	}
+	if !producer.isChannelClosed() { // 如果通道未关闭，则返回
+		return producer, true
+	}
+	// Remove 需要写锁，因此必须在读锁释放之后再调用：
+	// sync.RWMutex 不支持锁升级，在持有读锁时加写锁会自死锁。
+	p.Remove(uuid)
+	return nil, false
+}
+
+func (p *ProducerList) find(uuid string) (*Producer, bool) {
 	p.RLock()
 	defer p.RUnlock()
 	for _, v := range p.list {
 		if v.UUID == uuid {
-			if !v.Producer.channel.IsClosed() { // 如果通道未关闭，则返回
-				return v.Producer, true
-			}
-			p.Remove(uuid)
+			return v.Producer, true
 		}
 	}
 	return nil, false
@@ -282,11 +310,7 @@ func (p *ProducerList) Get(uuid string) (*Producer, bool) {
 func (p *ProducerList) Remove(uuid string) {
 	p.Lock()
 	defer p.Unlock()
-	for i, v := range p.list {
-		if v.UUID == uuid {
-			p.list = append(p.list[:i], p.list[i+1:]...)
-		}
-	}
+	p.list = removeUnitByUUID(p.list, uuid, func(u ProducerUnit) string { return u.UUID })
 }
 
 func (p *ProducerList) Shutdown() error {
