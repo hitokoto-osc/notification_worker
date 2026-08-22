@@ -16,10 +16,10 @@ import (
 )
 
 func init() {
-	provider.Register(HitokotoAppendedEvent())
+	provider.Register(HitokotoPollCreatedEvent())
 }
 
-// HitokotoPollCreatedEvent 处理一言成功添加事件
+// HitokotoPollCreatedEvent 处理投票创建事件
 func HitokotoPollCreatedEvent() *rabbitmq.ConsumerRegisterOptions {
 	return &rabbitmq.ConsumerRegisterOptions{
 		Exchange: rabbitmq.Exchange{
