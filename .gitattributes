@@ -1,0 +1,5 @@
+# 仓库统一以 LF 存储与检出。
+#
+# 邮件模板由 go:embed 打进二进制，golden 快照又逐字节比对渲染结果，
+# 一旦让 core.autocrlf 决定检出行尾，测试结果就会随贡献者的本地配置漂移。
+* text=auto eol=lf

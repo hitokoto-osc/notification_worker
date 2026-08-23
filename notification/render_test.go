@@ -26,6 +26,10 @@ func strptr(s string) *string { return &s }
 // normalizeGolden 抹掉渲染结果中依赖当前时间的部分（布局里的签名日期与页脚年份），
 // 否则快照每天都会失效。
 func normalizeGolden(html string) string {
+	// 行尾一律折成 LF。模板是被 go:embed 进来的，内容取决于检出时的
+	// core.autocrlf——Windows 上默认为 true，会把仓库里的 LF 换成 CRLF。
+	// 快照断言的是渲染结构，不该因为检出配置不同而失败。
+	html = strings.ReplaceAll(html, "\r\n", "\n")
 	html = strings.ReplaceAll(html, carbon.Now().Format("Y 年 n 月 j 日"), "<TODAY>")
 	// 只替换页脚版权处的年份，不要碰条目时间戳。
 	html = strings.ReplaceAll(html, "© "+carbon.Now().Format("Y")+" ", "© <YEAR> ")
@@ -43,7 +47,9 @@ func assertGolden(t *testing.T, name, html string) {
 	}
 	want, err := os.ReadFile(path)
 	require.NoError(t, err, "golden 缺失，用 -update 生成：%s", path)
-	assert.Equal(t, string(want), got, "渲染结果与 golden 不一致；确认变更符合预期后用 -update 更新")
+	// golden 文件同样会被 core.autocrlf 改写，两侧都折成 LF 再比。
+	assert.Equal(t, strings.ReplaceAll(string(want), "\r\n", "\n"), got,
+		"渲染结果与 golden 不一致；确认变更符合预期后用 -update 更新")
 }
 
 func contributorFixture() Digest {
