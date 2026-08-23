@@ -7,6 +7,12 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+// producerChannelState 只暴露 channel 的生命周期状态。
+// 抽出这一层是为了让 ProducerList 的回收逻辑无需真实 broker 即可测试。
+type producerChannelState interface {
+	IsClosed() bool
+}
+
 // Producer is RabbitMQ Producer wrapper
 // TODO: 修复 done 的信道的使用
 type Producer struct {
@@ -18,6 +24,8 @@ type Producer struct {
 	RabbitMQ *RabbitMQ
 	// The communication channel over connection
 	channel *amqp.Channel
+	// channelState mirrors channel; tests substitute a fake here.
+	channelState producerChannelState
 	// A notifiyng channel for publishings
 	done chan error
 	// Current producer connection settings
@@ -57,10 +65,11 @@ func (r *RabbitMQ) NewProducer(instance *Instance, e Exchange, q Queue, po Publi
 		return nil, errors.Wrap(err, "[RabbitMQ.Producer] UUID generation error")
 	}
 	producer := &Producer{
-		UUID:     uuidInstance.String(),
-		RabbitMQ: r,
-		instance: instance,
-		channel:  channel,
+		UUID:         uuidInstance.String(),
+		RabbitMQ:     r,
+		instance:     instance,
+		channel:      channel,
+		channelState: channel,
 		session: Session{
 			Exchange:          e,
 			Queue:             q,
@@ -69,6 +78,15 @@ func (r *RabbitMQ) NewProducer(instance *Instance, e Exchange, q Queue, po Publi
 	}
 	producer.HandleError()
 	return producer, nil
+}
+
+// isChannelClosed reports whether the producer's channel is no longer usable.
+// A missing channel counts as closed instead of panicking.
+func (p *Producer) isChannelClosed() bool {
+	if p.channelState != nil {
+		return p.channelState.IsClosed()
+	}
+	return p.channel == nil || p.channel.IsClosed()
 }
 
 // HandleError register the recover loop against channel closed

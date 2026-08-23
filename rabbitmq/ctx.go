@@ -67,27 +67,24 @@ func (c *ctx) GetProducerWithOptions(options ProducerRegisterOptions) (*Producer
 	if options.PublishingOptions.RoutingKey == "" {
 		options.PublishingOptions.RoutingKey = strings.Trim(options.Exchange.Name+"."+options.Queue.Name, ".")
 	}
-	uuid, ok := producersMap[options.PublishingOptions.RoutingKey]
-	if ok {
-		var producer *Producer
-		producer, ok = c.GetProducerByUUID(uuid)
-		if ok {
-			return producer, nil
-		}
-		logger.Warn("producer not found, try to recreate it.",
-			zap.String("uuid", uuid),
-			zap.String("routingKey", options.PublishingOptions.RoutingKey),
-			zap.String("exchangeName", options.Exchange.Name),
-			zap.String("queueName", options.Queue.Name),
-		)
-		delete(producersMap, options.PublishingOptions.RoutingKey) // 删除无效的 producer
-	}
-	producer, err := c.instance.RegisterProducer(options)
-	if err != nil {
-		return nil, err
-	}
-	producersMap[producer.GetRoutingKey()] = producer.UUID
-	return producer, nil
+	return producersCache.getOrCreate(
+		options.PublishingOptions.RoutingKey,
+		func(uuid string) (*Producer, bool) {
+			producer, ok := c.GetProducerByUUID(uuid)
+			if !ok {
+				logger.Warn("producer not found, try to recreate it.",
+					zap.String("uuid", uuid),
+					zap.String("routingKey", options.PublishingOptions.RoutingKey),
+					zap.String("exchangeName", options.Exchange.Name),
+					zap.String("queueName", options.Queue.Name),
+				)
+			}
+			return producer, ok
+		},
+		func() (*Producer, error) {
+			return c.instance.RegisterProducer(options)
+		},
+	)
 }
 
 func (c *ctx) GetProducerByUUID(uuid string) (*Producer, bool) {

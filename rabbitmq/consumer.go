@@ -30,10 +30,17 @@ type Consumer struct {
 	session Session
 }
 
+// DefaultConsumerPrefetch 限制单个消费者的未确认投递数。
+// Consume() 对每条 delivery 无条件派生 goroutine，没有 QoS 时扇出是无界的。
+const DefaultConsumerPrefetch = 32
+
 type ConsumerOptions struct {
 	// The consumer is identified by a string that is unique and scoped for all
 	// consumers on this channel.
 	Tag string
+	// Prefetch 限制未确认投递数，同时也就限制了并发 handler 数。
+	// 为 0 时使用 DefaultConsumerPrefetch。
+	Prefetch int
 	// When autoAck (also known as noAck) is true, the server will acknowledge
 	// deliveries to this consumer prior to writing the delivery to the network.  When
 	// autoAck is true, the consumer should not call Delivery.Ack

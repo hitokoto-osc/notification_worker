@@ -4,12 +4,26 @@
 	<title>{{ app.name|default:"一言" }}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
 	<meta name="color-scheme" content="light">
 	<meta name="supported-color-schemes" content="light">
 	{% block theme %}
 		{% include "email/partials/theme/default.django" %}
 	{% endblock theme %}
 	<style>
+		/* Outlook 桌面端不会剥离 <style>，mso-* 与 border-collapse 放在这里即可，
+		   无需为每个嵌套表格内联，可显著缩减摘要邮件体积。 */
+		table, td {
+			border-collapse: collapse;
+			mso-table-lspace: 0pt;
+			mso-table-rspace: 0pt;
+		}
+
+		body, table, td, a {
+			-webkit-text-size-adjust: none;
+			-ms-text-size-adjust: none;
+		}
+
 		@media only screen and (max-width: 600px) {
 			.inner-body {
 				width: 100% !important;
@@ -17,6 +31,11 @@
 
 			.footer {
 				width: 100% !important;
+			}
+
+			/* 32px 左右内边距在 320px 屏上要吃掉 20% 宽度。 */
+			.content-cell {
+				padding: 16px !important;
 			}
 		}
 
@@ -29,7 +48,7 @@
 </head>
 <body>
 
-<table class="wrapper" width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<table class="wrapper" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #edf2f7;">
 	<tr>
 		<td align="center">
 			<table class="content" width="100%" cellpadding="0" cellspacing="0" role="presentation">
@@ -37,11 +56,11 @@
 
 				<!-- Email Body -->
 				<tr>
-					<td class="body" width="100%" cellpadding="0" cellspacing="0" style="border: hidden !important;">
-						<table class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation">
+					<td class="body" width="100%" cellpadding="0" cellspacing="0" style="border: hidden !important; background-color: #edf2f7;">
+						<table class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff;">
 							<!-- Body content -->
 							<tr>
-								<td class="content-cell">
+								<td class="content-cell" style="background-color: #ffffff; padding: 32px;">
 									{% block content %}{% endblock %}
 									{% block sign %}
 									<br />

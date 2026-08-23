@@ -1,0 +1,27 @@
+{% extends "email/layouts/main.django" %}
+
+{% block content %}
+{# {% import %} 必须留在 block 内部，见 partials/digest_macros.django 顶部说明。 #}
+{% import "email/partials/digest_macros.django" reviewer_row as row, metric_pill as pill, section_header as header, overflow_notice as overflow %}
+
+<h1 style="color:#3d4852;font-size:18px;font-weight:bold;margin-top:0;text-align:left;">喵！您好，{{ username }}。</h1>
+<p style="font-size:15px;color:#718096;line-height:1.5;margin-top:0;margin-bottom:16px;">在过去的 {{ window_duration }}中，审核队列有 <b>{{ total }}</b> 条新动态：</p>
+
+{% for m in metrics %}{{ pill(m.label, m.count, m.tone) }}{% endfor %}
+
+{% for sec in sections %}
+{{ header(sec.title, sec.shown, sec.tone) }}
+{% for item in sec.items %}{{ row(item) }}{% endfor %}
+{% if sec.overflow > 0 %}{{ overflow(sec.overflow, action_url) }}{% endif %}
+{% endfor %}
+
+{% if action_url %}
+{% include "email/partials/button.django" with button_url=action_url button_text=action_text|default:"前往审核员工作台" button_align="center" button_color="primary" %}
+{% endif %}
+
+<p style="font-size:12px;color:#a0aec0;text-align:center;margin-top:16px;margin-bottom:0;line-height:1.5;">为避免邮件频繁打扰，系统已将短时间内产生的投票动态合并送达。</p>
+{% endblock %}
+
+{% block content_after %}
+{% include "email/partials/subcopy.django" with subcopy_content="<p> 如果您觉得消息提醒过于频繁，可以在 <u>用户设置</u> 页面调整或关闭相关通知选项。</p>" %}
+{% endblock %}
