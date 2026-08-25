@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
-	github.com/alibabacloud-go/dm-20151123/v2 v2.11.1
+	github.com/alibabacloud-go/dm-20151123/v2 v2.11.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
 	github.com/bytedance/sonic v1.15.2
 	github.com/cockroachdb/errors v1.14.0
