@@ -6,7 +6,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
 	github.com/alibabacloud-go/dm-20151123/v2 v2.11.1
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
-	github.com/bytedance/sonic v1.15.2
+	github.com/bytedance/sonic v1.15.3
 	github.com/cockroachdb/errors v1.14.0
 	github.com/dromara/carbon/v2 v2.6.17
 	github.com/flosch/pongo2/v6 v6.1.0
