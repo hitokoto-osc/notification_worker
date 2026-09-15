@@ -12,7 +12,7 @@ require (
 	github.com/flosch/pongo2/v6 v6.1.0
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0
-	github.com/rabbitmq/amqp091-go v1.14.0
+	github.com/rabbitmq/amqp091-go v1.15.0
 	github.com/samber/lo v1.53.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
