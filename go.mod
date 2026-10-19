@@ -8,7 +8,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
 	github.com/bytedance/sonic v1.15.2
 	github.com/cockroachdb/errors v1.14.0
-	github.com/dromara/carbon/v2 v2.6.17
+	github.com/dromara/carbon/v2 v2.7.0
 	github.com/flosch/pongo2/v6 v6.1.0
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0
