@@ -6,7 +6,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
 	github.com/alibabacloud-go/dm-20151123/v2 v2.11.1
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
-	github.com/bytedance/sonic v1.15.2
+	github.com/bytedance/sonic v1.15.5
 	github.com/cockroachdb/errors v1.14.0
 	github.com/dromara/carbon/v2 v2.6.17
 	github.com/flosch/pongo2/v6 v6.1.0
@@ -28,7 +28,7 @@ require (
 	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
 	github.com/aliyun/credentials-go v1.4.13 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
-	github.com/bytedance/sonic/loader v0.5.2 // indirect
+	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
