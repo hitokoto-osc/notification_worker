@@ -3,7 +3,7 @@ module github.com/hitokoto-osc/notification-worker
 go 1.27.0
 
 require (
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.5
 	github.com/alibabacloud-go/dm-20151123/v2 v2.11.1
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
 	github.com/bytedance/sonic v1.15.2
@@ -24,7 +24,7 @@ require (
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
 	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
-	github.com/alibabacloud-go/tea v1.5.3 // indirect
+	github.com/alibabacloud-go/tea v1.5.4 // indirect
 	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
 	github.com/aliyun/credentials-go v1.4.13 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
